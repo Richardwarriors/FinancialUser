@@ -1,6 +1,6 @@
 # FinancialUser: Rolling Prediction
 
-Code for the NAACL27 rolling next-trading-day financial behavior prediction experiment. This repository includes the point-in-time profile engine, rolling sample construction, hierarchical prediction, information ablations and evaluation. Datasets, user profiles, experiment outputs, Explanation experiments, credentials and participant information are excluded.
+Code for the rolling next-trading-day financial behavior prediction experiment. This repository includes the point-in-time profile engine, rolling sample construction, hierarchical prediction, information ablations and evaluation. Datasets, user profiles, experiment outputs, Explanation experiments, credentials and participant information are excluded.
 
 ## Requirements
 
