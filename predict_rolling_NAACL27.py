@@ -191,7 +191,7 @@ def call(api_url, model, key, payload, *, max_tokens=3000, max_attempts=6):
     empty content -- and did so deterministically, so all six retries failed the
     same way and the sample was dropped. That is not random attrition: the
     samples lost are the ones the model deliberated longest over, so dropping
-    them would quietly make every group look more decisive than it is. 
+    them would quietly make every group look more decisive than it is.
 
     The budget also escalates per attempt, because a fixed ceiling can only ever
     be right for the sample it was measured on.

@@ -783,7 +783,7 @@ def _news_alignment(events):
         "macro_topics": [{"topic": k, "count": v} for k, v in macro_mix.most_common(8)],
         "usable_signal_rate": round(
             (len({id(e) for e in linked} | {id(e) for e in macro}) / len(news)), 3) if news else None,
-        "note": ("High proportion of macroeconomic news: no corresponding individual stock instrument, but macro themes are separately labeled and must not be treated as no information due to the lack of individual stocks."), 
+        "note": ("High proportion of macroeconomic news: no corresponding individual stock instrument, but macro themes are separately labeled and must not be treated as no information due to the lack of individual stocks."),
     }
 
 
