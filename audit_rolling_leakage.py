@@ -50,7 +50,7 @@ from app.rolling_schema import public_profile_contamination           # noqa: E4
 from app.rolling_time import (cutoff_for, last_n_trading_days,        # noqa: E402
                               parse_execution_et, trading_days)
 
-FULL_DB = HERE / "data" / "bm_full.db"
+FULL_DB = HERE / "data" / "observations_full.db"
 
 # Any ISO date or datetime, anywhere in a string.
 DATE_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
@@ -175,7 +175,7 @@ def recheck_labels(paths: list[Path], problems: list[str]) -> dict:
 
     Deliberately written against the raw table rather than by calling
     `app.rolling_labels`: reusing the builder's own function would only prove it
-    is deterministic.  BM452 `executed_at` is naive UTC in this corpus, so the
+    is deterministic.  trade_executions `executed_at` is naive UTC in this corpus, so the
     trading date is the ET date after conversion -- a same-day comparison in UTC
     would move every evening execution to the next day.
     """
@@ -189,7 +189,7 @@ def recheck_labels(paths: list[Path], problems: list[str]) -> dict:
         buy = sell = 0.0
         for when, side, amount, state in con.execute(
                 "select executed_at, side, executed_amount, execution_state "
-                "from bm452_trades where user_id=?", (sample["user_id"],)):
+                "from trade_executions where user_id=?", (sample["user_id"],)):
             if (state or "executed") != "executed" or side not in ("buy", "sell"):
                 continue
             when_et = parse_execution_et(when)

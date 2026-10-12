@@ -1,11 +1,11 @@
-"""BM433 Behavior Feature Engine.
+"""behavior_events Behavior Feature Engine.
 
 Turns the raw in-app behavior stream into structured, auditable intent
 evidence. Deterministic: no LLM, every number reproducible from the snapshot.
 
-Pipeline (mirrors the agreed BM433 design):
+Pipeline (mirrors the agreed behavior_events design):
 
-    Raw BM433
+    Raw behavior_events
       -> Event Normalisation        (event_type / entity / info_type / intent)
       -> Sessionisation             (30-min gap, focus-ticker carry-forward)
       -> User-Ticker Temporal State (attention / research depth / recency /
@@ -20,7 +20,7 @@ Two rules are enforced throughout:
   * Nothing is inferred that the events do not support. A news headline gives
     "negative information exposure", never "user is bearish".
   * Importance weights are NOT hand-picked: ``calibrate_weights`` estimates
-    P(trade within N days | event_type) from BM433 x BM452 and the engine
+    P(trade within N days | event_type) from behavior_events x trade_executions and the engine
     loads that artifact. A documented prior is used only where the sample is
     too thin, and the output always states which one was used.
 """
@@ -119,7 +119,7 @@ _NON_TICKER = {"concept", "economy", "index", "BTCUSDT"}
 
 SESSION_GAP_MINUTES = 30
 CONVICTION_LOOKBACK_DAYS = 7
-WEIGHTS_PATH = Path("data/bm433_weights.json")
+WEIGHTS_PATH = Path("data/behavior_events_weights.json")
 
 # ---------- helpers ----------
 
@@ -180,7 +180,7 @@ def _metric_kind(name):
 # ---------- 1. event normalisation ----------
 
 def normalize_event(action_text):
-    """Raw BM433 string -> canonical behavioral event (or None if unparseable)."""
+    """Raw behavior_events string -> canonical behavioral event (or None if unparseable)."""
     if not action_text:
         return None
     a = str(action_text).strip()
@@ -363,7 +363,7 @@ def build_sessions(events, gap_minutes=SESSION_GAP_MINUTES):
     return sessions
 
 
-# ---------- 3. weights (empirical, from BM433 x BM452) ----------
+# ---------- 3. weights (empirical, from behavior_events x trade_executions) ----------
 
 PRIOR_WEIGHTS = {k: v[2] for k, v in EVENT_TYPES.items()}   # lift scale, 1.0 = average
 
@@ -391,7 +391,7 @@ def calibrate_weights(db_path, horizon_days=3, min_exposure=30, out_path=WEIGHTS
     """Estimate P(trade on the same ticker within `horizon_days` | event_type).
 
     Exposure = (user, ticker, day) pairs where that event_type occurred.
-    Positive  = a BM452 trade on the same ticker within the horizon.
+    Positive  = a trade_executions trade on the same ticker within the horizon.
 
     Raw rates are noisy for rare event types, so they are shrunk toward the
     global base rate (Bayesian smoothing, k = min_exposure). A weight is only
@@ -413,7 +413,7 @@ def calibrate_weights(db_path, horizon_days=3, min_exposure=30, out_path=WEIGHTS
             "select event_date,timestamp_et,action_text from events where user_id=? order by timestamp_et",
             (uid,))]
         trd = [dict(r) for r in c.execute(
-            "select trade_date,executed_at,ticker,side from bm452_trades where user_id=?", (uid,))]
+            "select trade_date,executed_at,ticker,side from trade_executions where user_id=?", (uid,))]
         if not beh or not trd:
             continue
         trades = []
@@ -718,7 +718,7 @@ def _research_style(events):
 
 def _position_context(events, holdings_latest, trades, window_days=30):
     """Label each event held / recently_bought / recently_sold / not_held using
-    the BM453 book and the BM452 history (design section 13)."""
+    the account_snapshots book and the trade_executions history (design section 13)."""
     held = {(k or "").upper() for k in (holdings_latest or {})}
     buys, sells = set(), set()
     ref = events[-1]["ts"] if events else None
@@ -757,7 +757,7 @@ def _position_context(events, holdings_latest, trades, window_days=30):
 def _news_alignment(events):
     """How often reading news links back to tickers the user actually follows.
 
-    The BM433 news corpus is English and macro-dominated (geopolitics and
+    The behavior_events news corpus is English and macro-dominated (geopolitics and
     politics outweigh single-name stories), so requiring a ticker would score
     most headlines as "no signal" when they in fact carry a clear topic. Both a
     ticker link and a macro topic are therefore reported; a headline with
@@ -832,7 +832,7 @@ def _build_targets(states, theme_rows, holdings, conviction, ticker_att, n_event
         "level1_top_themes": [{"theme": t["theme"], "attention_share": t["attention_share"],
                                "trend": t["trend"]} for t in theme_rows[:4]],
         "level2_intent_candidates": l2,
-        "level2_note": ("researched/repeatedly checked but not in the latest BM453 "
+        "level2_note": ("researched/repeatedly checked but not in the latest account_snapshots "
                         "book; a candidate under consideration, not a prediction"),
         "level3_action_observed": l3,
         "level3_note": "retrospective: research on these tickers resolved into trades",
@@ -840,7 +840,7 @@ def _build_targets(states, theme_rows, holdings, conviction, ticker_att, n_event
 
 
 def build_behavior_intent(snap, weights_path=WEIGHTS_PATH, max_tickers=8):
-    """Full BM433 engine output for one snapshot."""
+    """Full behavior_events engine output for one snapshot."""
     behaviors = snap.get("behaviors_6m") or []
     if not behaviors:
         return {"available": False}
@@ -942,7 +942,7 @@ def build_behavior_intent(snap, weights_path=WEIGHTS_PATH, max_tickers=8):
 
     return {
         "available": True,
-        "engine": "bm433-behavior-v1",
+        "engine": "behavior_events-behavior-v1",
         "weights_source": w["source"],
         "weights_scale": "lift_vs_base_rate",
         "totals": {
@@ -1004,9 +1004,9 @@ def build_behavior_intent(snap, weights_path=WEIGHTS_PATH, max_tickers=8):
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="BM433 behavior engine utilities")
+    ap = argparse.ArgumentParser(description="behavior_events behavior engine utilities")
     ap.add_argument("--calibrate", action="store_true", help="recompute empirical weights")
-    ap.add_argument("--db", default="data/bm.db")
+    ap.add_argument("--db", default="data/financial.db")
     ap.add_argument("--horizon-days", type=int, default=3)
     ap.add_argument("--min-exposure", type=int, default=30)
     ap.add_argument("--min-users", type=int, default=5)

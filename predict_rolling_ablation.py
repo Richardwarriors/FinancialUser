@@ -18,7 +18,7 @@ The four stages
                          trim_position | exit_position | hold       (if trade)
 
 Stage 4's gold is `targets.position_actions.primary_action`, observed from the
-BM453 boundary books.  It is observed on 275 of the 307 true trading days in the
+account_snapshots boundary books.  It is observed on 275 of the 307 true trading days in the
 scored set.  `hold` is kept in the label space: on 25 of those days executions
 happened but the book showed no net persistent change (an intraday round trip),
 and dropping the class would silently rescore those days as a different action.

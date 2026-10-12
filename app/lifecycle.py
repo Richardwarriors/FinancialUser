@@ -12,7 +12,7 @@ value always travels with `carried_forward`, `age_days` and `stale`.
 cases break that:
 
   * the data was REPAIRED rather than extended — this happened for real: an
-    invalid `asset_total` on 4.4% of BM453 day-rows produced `invested_ratio`
+    invalid `asset_total` on 4.4% of account_snapshots day-rows produced `invested_ratio`
     above 1.0 for 33 users (peak 205x). After the fix those numbers changed
     while the row count did not;
   * rows were added but changed nothing a given dimension cares about.

@@ -161,9 +161,9 @@ class Decision(BaseModel):
 # interests and attention must not be smuggled in as revealed risk behavior.
 
 POLICY = {
-    # risk keeps its attention boundary: attention_capital is DERIVED FROM BM433
+    # risk keeps its attention boundary: attention_capital is DERIVED FROM behavior_events
     # behaviour, so giving it to risk would smuggle behaviour back in. Position
-    # dynamics comes from BM453 account data, which risk is allowed to see.
+    # dynamics comes from account_snapshots account data, which risk is allowed to see.
     #
     # `stated` (users.base_profile_summary) is NOT granted to any dimension: it was
     # person-identifying demographic text, not investment evidence. Removing it

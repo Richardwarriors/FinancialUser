@@ -1,13 +1,13 @@
 """Deterministic KYC feature extraction.
 
-Fills the `deterministic` features of app/kyc_catalog.py straight from the BM
+Fills the `deterministic` features of app/kyc_catalog.py straight from the financial data
 streams: no LLM, every number reproducible, every value carries evidence refs.
 
 Design notes worth keeping:
 
-* Cash vs stock split comes from BM453 (`asset_total` - `stock_total`), so
+* Cash vs stock split comes from account_snapshots (`asset_total` - `stock_total`), so
   `money_remain` is checked against it rather than trusted blindly.
-* Leveraged products are detected from the *instrument name* that BM453 already
+* Leveraged products are detected from the *instrument name* that account_snapshots already
   carries ("T-Rex 2X Long Alphabet Daily Target ETF"), not only from a static
   ticker list — that catches names the list would miss and is auditable.
 * External cash flow is estimated only on days with no trade and no change to
@@ -110,8 +110,8 @@ def account_balances_and_cash(acct):
                   "cash_ratio": round(cash / total, 4) if total and cash is not None else None},
         "display": f"Total account assets {total:,.0f}, including securities {stock:,.0f} and cash {cash:,.0f}"
                    if None not in (stock, cash) else f"Total account assets {total:,.0f}",
-        "evidence": [f"bm453_daily.asset_total={total}", f"bm453_daily.stock_total={stock}",
-                     f"bm453_daily.money_remain={cash}", f"bm453_daily.snapshot_date={last.get('snapshot_date')}"],
+        "evidence": [f"account_snapshots.asset_total={total}", f"account_snapshots.stock_total={stock}",
+                     f"account_snapshots.money_remain={cash}", f"account_snapshots.snapshot_date={last.get('snapshot_date')}"],
         "confidence": 0.95,
     }
 
@@ -136,7 +136,7 @@ def asset_class_allocation(acct):
     return {
         "value": {"as_of": as_of, "by_asset_class_within_equity": shares, "positions": n_pos},
         "display": f"Position composition as of {as_of}: {top} (share of securities market value)",
-        "evidence": [f"bm453_daily[{as_of}].holdings market value of {n_pos} instruments"],
+        "evidence": [f"account_snapshots[{as_of}].holdings market value of {n_pos} instruments"],
         "confidence": 0.9,
     }
 
@@ -162,7 +162,7 @@ def strategy_bucket_structure(acct):
                   "directional_share": round(directional, 4),
                   "leveraged_share": round(leveraged, 4), "positions": len(rows)},
         "display": label + f"(As of {as_of})",
-        "evidence": [f"bm453_daily[{as_of}].holdings grouped and aggregated by instrument ({len(rows)} instruments)"],
+        "evidence": [f"account_snapshots[{as_of}].holdings grouped and aggregated by instrument ({len(rows)} instruments)"],
         "confidence": 0.75,
     }
 
@@ -189,7 +189,7 @@ def largest_position_concentration(acct):
         "value": {"latest_top_holding": last_code, "latest_share": round(last_share, 4),
                   "avg_top1_share": round(avg, 4), "max_top1_share": round(max_seen, 4)},
         "display": f"Average maximum single position accounted for {avg * 100:.0f}% of securities market value (concentration {level}); most recently, {last_code} accounted for {last_share * 100:.0f}%",
-        "evidence": [f"bm453_daily.holdings daily top1 market value share ({len(series)} days)",
+        "evidence": [f"account_snapshots.holdings daily top1 market value share ({len(series)} days)",
                      f"position.max_num_positions"],
         "confidence": 0.9,
     }
@@ -218,7 +218,7 @@ def sector_concentration(acct):
                   "top_sector_share": top_share, "sector_map_coverage": round(coverage, 4)},
         "display": f"Sector concentration: {top_sector} accounts for {top_share * 100:.0f}% (as of {as_of})"
                    + ("; The static industry table does not cover some instruments, so this value may underestimate concentration" if coverage < 0.8 else ""),
-        "evidence": [f"bm453_daily[{as_of}].holdings mapped by static industry table, coverage {coverage:.0%}"],
+        "evidence": [f"account_snapshots[{as_of}].holdings mapped by static industry table, coverage {coverage:.0%}"],
         "confidence": round(0.85 * coverage, 3),
     }
 
@@ -261,8 +261,8 @@ def leverage_and_derivatives_exposure(acct, trades, intent):
         return {
             "value": {"leveraged_held": [], "leveraged_traded": {}, "option_views": 0, "option_trades": 0},
             "display": "No use of leveraged/inverse products or options observed",
-            "evidence": ["Neither bm453_daily.holdings nor bm452_trades contains leveraged/option instruments",
-                         "bm433 no option-chain viewing behavior"],
+            "evidence": ["Neither account_snapshots.holdings nor trade_executions contains leveraged/option instruments",
+                         "behavior_events no option-chain viewing behavior"],
             "confidence": 0.8,
         }
     parts = []
@@ -278,9 +278,9 @@ def leverage_and_derivatives_exposure(acct, trades, intent):
         "value": {"leveraged_held": held_lev, "leveraged_traded": dict(traded_lev),
                   "option_views": opt_views, "option_trades": opt_trades},
         "display": "Leverage and derivatives use:" + "；".join(parts),
-        "evidence": [f"bm453_daily.holdings leveraged/inverse products: {_fmt_seq(held_lev)}",
-                     f"bm452_trades leveraged product trades: {_fmt_counts(traded_lev)}",
-                     f"bm433 view_options=×{opt_views}"],
+        "evidence": [f"account_snapshots.holdings leveraged/inverse products: {_fmt_seq(held_lev)}",
+                     f"trade_executions leveraged product trades: {_fmt_counts(traded_lev)}",
+                     f"behavior_events view_options=×{opt_views}"],
         "confidence": 0.85,
     }
 
@@ -295,7 +295,7 @@ def contribution_and_withdrawal_pattern(acct, trades):
             "value": {"events": [], "deposits": 0, "withdrawals": 0,
                       "net": 0.0, "observation_days": len(acct)},
             "display": "No verifiable net deposits or withdrawals identified during the observation window (inferred basis: no trading days and unchanged holdings)",
-            "evidence": [f"bm453_daily {len(acct)}-day asset series, with daily Δtotal assets−Δsecurities market value≈0"],
+            "evidence": [f"account_snapshots {len(acct)}-day asset series, with daily Δtotal assets−Δsecurities market value≈0"],
             "confidence": 0.6,
         }
     dep = [f for f in flows if f["direction"] == "in"]
@@ -310,7 +310,7 @@ def contribution_and_withdrawal_pattern(acct, trades):
                   "net": round(net, 2), "observation_days": len(acct),
                   "material": material},
         "display": (f"Identified {len(dep)} deposits and {len(wd)} withdrawals (net {'+' if net >= 0 else ''}{net:,.0f}); {note}."),
-        "evidence": [f"On non-trading days in bm453_daily, Δasset_total−Δstock_total was non-zero ({len(flows)} days)",
+        "evidence": [f"On non-trading days in account_snapshots, Δasset_total−Δstock_total was non-zero ({len(flows)} days)",
                      f"example {flows[0]['date']} "
                      f"{'deposit' if flows[0]['amount'] > 0 else 'withdrawal'} "
                      f"{abs(flows[0]['amount']):,.0f}"],
@@ -344,7 +344,7 @@ def drawdown_experience(acct, trades=None):
                    + (", subsequently recovered" if recover else ", has not yet returned to the previous high")
                    + ("; The impact of external deposits and withdrawals has been excluded" if adj["flow_count"] else "")
                    + ("; Continued holding despite a relatively large drawdown, indicating a level of pressure actually endured" if relief else ""),
-        "evidence": [f"bm453_daily time-weighted net asset value series: {len(values)} days ({dates[0]} to {dates[-1]})",
+        "evidence": [f"account_snapshots time-weighted net asset value series: {len(values)} days ({dates[0]} to {dates[-1]})",
                      f"Removed {adj['flow_count']} external deposits/withdrawals (net {adj['flow_net']:,.0f})"],
         "confidence": 0.8 if adj["flow_count"] else 0.85,
     }
@@ -361,7 +361,7 @@ def investable_assets_band(acct):
     return {
         "value": {"latest_asset_total": round(total, 2), "band": band, "currency": "USD"},
         "display": f"Investable assets fall within the {band} range (platform account basis)",
-        "evidence": [f"bm453_daily.asset_total={total}", "Only covers accounts visible on this platform; external assets are not visible"],
+        "evidence": [f"account_snapshots.asset_total={total}", "Only covers accounts visible on this platform; external assets are not visible"],
         "confidence": 0.9,
     }
 

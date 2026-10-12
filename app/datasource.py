@@ -1,15 +1,14 @@
-"""Data Gateway: BMDataSource abstraction.
+"""Financial data gateway with point-in-time source adapters.
 
-Streams (v2):
-    BM433 behavior      -> get_behaviors
-    BM452 trades        -> get_trades
-    BM453 daily account -> get_account_daily   (replaces BM451 + BM426)
-    BM428 conversations -> get_conversations
+Streams:
+    behavior_events   -> get_behaviors
+    trade_executions  -> get_trades
+    account_snapshots -> get_account_daily
+    conversations     -> get_conversations
 
-Today: LinkBMDataSource reads the local snapshot pulled by fetch_bm_labels.py
-(internal label API -> data/bm.db + data/raw_bm/).
-Future: HiveBMDataSource implements the same interface against Hive.
-Agents never know which connector produced the snapshot.
+SQLiteDataSource reads normalized local records prepared by load_naacl_db.py.
+HiveDataSource reserves the same interface for a future Hive adapter.
+Agents consume the interface independently of the underlying connector.
 """
 import json
 import sqlite3
@@ -18,8 +17,8 @@ from abc import ABC, abstractmethod
 from .rolling_time import parse_cutoff, parse_event_et, parse_execution_et
 
 
-class BMDataSource(ABC):
-    """Canonical read interface for all BM user data streams."""
+class FinancialDataSource(ABC):
+    """Canonical read interface for all financial observation streams."""
 
     name = "abstract"
 
@@ -45,8 +44,8 @@ class BMDataSource(ABC):
         return f"{self.name}:local-snapshot"
 
 
-class LinkBMDataSource(BMDataSource):
-    """BM link adapter: periodic pull persisted into local SQLite."""
+class SQLiteDataSource(FinancialDataSource):
+    """Local SQLite adapter: periodic pull persisted into local SQLite."""
 
     name = "link"
 
@@ -79,8 +78,8 @@ class LinkBMDataSource(BMDataSource):
         """Every user id that appears in ANY input stream.
 
         This used to read only the `users` table. That silently hid anyone who
-        shows up in a BM stream without a row there — which is exactly what
-        happens at scale: a user's first appearance may be a single BM433 event,
+        shows up in a financial data stream without a row there — which is exactly what
+        happens at scale: a user's first appearance may be a single behavior_events event,
         a conversation, or one daily snapshot. The contract is now the UNION, so
         such a user still gets a profile built from whatever exists and is filled
         in later as more streams arrive.
@@ -88,8 +87,8 @@ class LinkBMDataSource(BMDataSource):
         Output-only tables (profile_versions, audit_log, profile_updates) are
         deliberately excluded: having a profile is not a source of user identity.
         """
-        streams = ("events", "trades", "bm452_trades", "bm426_assets",
-                   "bm453_daily", "bm428_conversations", "users")
+        streams = ("events", "trades", "trade_executions", "equity_summaries",
+                   "account_snapshots", "conversations", "users")
         c = self._con()
         found = set()
         for table in streams:
@@ -105,7 +104,7 @@ class LinkBMDataSource(BMDataSource):
         """Stated background, or "" when absent.
 
         A missing row is a data gap, not an error: with the union user universe a
-        user can legitimately exist in a BM stream while having no `users` row,
+        user can legitimately exist in a financial data stream while having no `users` row,
         and refusing to build their snapshot would defeat the point.
         """
         c = self._con()
@@ -119,9 +118,9 @@ class LinkBMDataSource(BMDataSource):
         if self._has_table("events"):
             sql = ("select event_date,timestamp_et,action_text,source from events "
                    "where user_id=? order by timestamp_et")
-        elif self._has_table("bm433_events"):
+        elif self._has_table("behavior_events"):
             sql = ("select event_date,timestamp_et,action_text,null as source "
-                   "from bm433_events where user_id=? order by timestamp_et")
+                   "from behavior_events where user_id=? order by timestamp_et")
         else:
             return []
         rows = [dict(r) for r in c.execute(sql, (user_id,))]
@@ -132,7 +131,7 @@ class LinkBMDataSource(BMDataSource):
                     and parse_event_et(r.get("timestamp_et")) <= self.cutoff_et)]
 
     def get_trades(self, user_id):
-        """BM452 trades.
+        """trade_executions trades.
 
         `executed_at` is the real execution timestamp recovered from the raw
         payload. The `trade_date` column is NOT the trade date — it is the label
@@ -141,16 +140,16 @@ class LinkBMDataSource(BMDataSource):
         """
         c = self._con()
         out = []
-        cols = {r[1] for r in c.execute("pragma table_info(bm452_trades)")}
+        cols = {r[1] for r in c.execute("pragma table_info(trade_executions)")}
         if "executed_quantity" in cols:
             sql = ("select trade_date,ticker,side,executed_quantity,executed_amount,"
                    "execution_state,payload,executed_at,order_at,venue "
-                   "from bm452_trades where user_id=? order by coalesce(executed_at,trade_date)")
+                   "from trade_executions where user_id=? order by coalesce(executed_at,trade_date)")
         else:
             sql = ("select executed_date as trade_date,ticker,side,"
                    "executed_qty as executed_quantity,executed_amount,execution_state,"
                    "null as payload,executed_at,null as order_at,null as venue "
-                   "from bm452_trades where user_id=? order by executed_at")
+                   "from trade_executions where user_id=? order by executed_at")
         for r in c.execute(sql, (user_id,)):
             t = dict(r)
             # recover price from raw payload when available: bits[8] is price
@@ -169,20 +168,20 @@ class LinkBMDataSource(BMDataSource):
         return out
 
     def get_account_daily(self, user_id):
-        """BM453 daily account snapshot: asset/stock/cash totals + holdings.
+        """account_snapshots daily account snapshot: asset/stock/cash totals + holdings.
 
-        This single stream replaces the legacy BM451 (weekly holdings) and
-        BM426 (6-month equity summary) channels: it is daily, per-account and
+        This single stream replaces the legacy weekly_holdings (weekly holdings) and
+        equity_summary (6-month equity summary) channels: it is daily, per-account and
         carries the full position book, so both the position and the asset
         evidence are derived from it.
         """
         c = self._con()
         out = []
-        cols = {r[1] for r in c.execute("pragma table_info(bm453_daily)")}
+        cols = {r[1] for r in c.execute("pragma table_info(account_snapshots)")}
         n_holdings = "n_holdings" if "n_holdings" in cols else "null as n_holdings"
         for r in c.execute(
                 f"select snapshot_date,asset_total,stock_total,money_remain,"
-                f"stock_profit_daily,holdings_json,{n_holdings} from bm453_daily "
+                f"stock_profit_daily,holdings_json,{n_holdings} from account_snapshots "
                 "where user_id=? order by snapshot_date", (user_id,)):
             d = dict(r)
             try:
@@ -195,33 +194,33 @@ class LinkBMDataSource(BMDataSource):
         return out
 
     def get_conversations(self, user_id):
-        """BM428 conversation-title stream (user questions asked to Aime).
+        """conversations conversation-title stream (user questions asked to Aime).
 
-        BM428 has no timestamp.  It is therefore permitted for a database-level T0
+        conversations has no timestamp.  It is therefore permitted for a database-level T0
         snapshot, but excluded from rolling point-in-time views by default.
         """
-        if not self.include_conversations or not self._has_table("bm428_conversations"):
+        if not self.include_conversations or not self._has_table("conversations"):
             return []
         c = self._con()
         return [dict(r) for r in c.execute(
-            "select seq,title from bm428_conversations where user_id=? order by seq",
+            "select seq,title from conversations where user_id=? order by seq",
             (user_id,))]
 
 
-class HiveBMDataSource(BMDataSource):
+class HiveDataSource(FinancialDataSource):
     """Future Hive connector. Same contract, zero downstream change."""
 
     name = "hive"
 
     def __getattr__(self, item):
         raise NotImplementedError(
-            "HiveBMDataSource is reserved for the future Hive rollout; "
-            "swap it in behind the same BMDataSource interface.")
+            "HiveDataSource is reserved for the future Hive rollout; "
+            "swap it in behind the same FinancialDataSource interface.")
 
 
-def get_datasource(kind="link", db_path="data/bm.db"):
+def get_datasource(kind="link", db_path="data/financial.db"):
     if kind == "link":
-        return LinkBMDataSource(db_path)
+        return SQLiteDataSource(db_path)
     if kind == "hive":
-        return HiveBMDataSource()
+        return HiveDataSource()
     raise ValueError(f"unknown datasource kind: {kind}")

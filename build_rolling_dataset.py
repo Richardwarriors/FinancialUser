@@ -14,7 +14,7 @@ import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from app.datasource import LinkBMDataSource
+from app.datasource import SQLiteDataSource
 from app.harness_graph import refresh
 from app.naacl_config import PROFILE_CUTOFF
 from app.rolling_labels import build_targets
@@ -29,7 +29,7 @@ from app.rolling_time import (NEW_YORK, cutoff_for,
                               parse_execution_et, trading_days)
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_FULL_DB = HERE / "data" / "bm_full.db"
+DEFAULT_FULL_DB = HERE / "data" / "observations_full.db"
 DEFAULT_OUT = HERE / "data" / "rolling_prediction"
 
 
@@ -174,7 +174,7 @@ def _leakage(profile, recent, market, cutoff):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--t0-db", default=str(HERE / "data" / "bm_t0.db"))
+    ap.add_argument("--t0-db", default=str(HERE / "data" / "observations_t0.db"))
     ap.add_argument("--full-db", default=str(DEFAULT_FULL_DB))
     ap.add_argument("--base-dir", default=str(DEFAULT_OUT / "base_t0"))
     ap.add_argument("--out", default=str(DEFAULT_OUT))
@@ -186,7 +186,7 @@ def main():
     ap.add_argument("--prediction-sessions", type=int, default=40,
                     help="number of US market trading sessions to predict (default 40)")
     ap.add_argument("--execution-coverage-through",
-                    help="last date whose BM452 extraction is known complete; without it, no-trade labels are unknown")
+                    help="last date whose trade_executions extraction is known complete; without it, no-trade labels are unknown")
     ap.add_argument("--manifest",
                     help="manifest path; default <out>/manifest.json. Give each "
                          "parallel worker its own so they do not clobber one another")
@@ -230,7 +230,7 @@ def main():
     sample_root.mkdir(parents=True, exist_ok=True)
     market_cache = YahooMarketCache(Path(args.market_cache))
     rolling_db = out / "rolling_profiles.db"
-    full = LinkBMDataSource(args.full_db)
+    full = SQLiteDataSource(args.full_db)
     manifest = {"schema_version": SAMPLE_SCHEMA_VERSION, "T0": PROFILE_CUTOFF,
                 "users": len(users), "targets": len(targets), "samples": 0,
                 "failures": [], "busy": [], "leakage_violations": 0}

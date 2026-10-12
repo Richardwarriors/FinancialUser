@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(HERE / "data" / "bm_t0.db"))
+    ap.add_argument("--db", default=str(HERE / "data" / "observations_t0.db"))
     ap.add_argument("--out", default=str(HERE / "data" / "rolling_prediction" / "base_t0"))
     ap.add_argument("--users-file")
     ap.add_argument("--expected-users", type=int, default=120)

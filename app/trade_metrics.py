@@ -1,6 +1,6 @@
 """Trading metrics: activity, execution behaviour and realised results.
 
-Derived from BM452 alone, so it works for every user with trades.
+Derived from trade_executions alone, so it works for every user with trades.
 
 Timing
 ------
@@ -33,7 +33,7 @@ METRIC_VERSION = "trade-metrics-v1"
 MIN_ROUND_TRIPS = 3          # below this, distribution statistics are noise
 MIN_ROUND_TRIPS_DIST = 8     # below this, skew/kurtosis are not reported
 
-# Cost/fees are not present in BM452, so "win" means gross P&L > 0. Stated in
+# Cost/fees are not present in trade_executions, so "win" means gross P&L > 0. Stated in
 # the output rather than silently ignored.
 GROSS_BASIS = "gross_pnl_no_fees"
 
@@ -179,7 +179,7 @@ def activity(trades):
         "first_trade": trades[0]["ts"].date().isoformat(),
         "last_trade": trades[-1]["ts"].date().isoformat(),
         "success_rate": None,
-        "success_rate_note": "BM452 contains only filled records, with no canceled orders; order success rate cannot be calculated",
+        "success_rate_note": "trade_executions contains only filled records, with no canceled orders; order success rate cannot be calculated",
     }
 
 
@@ -296,7 +296,7 @@ def build_trade_metrics(trades):
     norm = normalise_trades(trades)
     if not norm:
         return {"available": False,
-                "note": "No usable transaction records (BM452 is empty or the transaction time cannot be parsed)"}
+                "note": "No usable transaction records (trade_executions is empty or the transaction time cannot be parsed)"}
     rts, open_lots = fifo_match(norm)
     out = {
         "available": True,

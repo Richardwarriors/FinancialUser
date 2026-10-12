@@ -41,7 +41,7 @@ def _date(value) -> date:
 def execution_time_et(row: dict) -> datetime | None:
     """Return an execution timestamp in America/New_York.
 
-    BM452 ``executed_at`` is naive UTC in this corpus. An offset-aware value is
+    trade_executions ``executed_at`` is naive UTC in this corpus. An offset-aware value is
     honoured as written and converted to ET. Invalid or absent timestamps are not
     replaced with a date-only field because that would silently change day labels.
     """

@@ -15,8 +15,8 @@ def main():
     args = parser.parse_args()
     # Fail before any model call if the purported seed database contains future rows.
     with sqlite3.connect(f'file:{args.db}?mode=ro', uri=True) as conn:
-        for table, field in [('events', 'event_date'), ('bm452_trades', 'trade_date'),
-                             ('bm453_daily', 'snapshot_date')]:
+        for table, field in [('events', 'event_date'), ('trade_executions', 'trade_date'),
+                             ('account_snapshots', 'snapshot_date')]:
             if conn.execute(f'SELECT COUNT(*) FROM {table} WHERE {field} > ?',
                             (PROFILE_CUTOFF,)).fetchone()[0]:
                 raise SystemExit(f'{table} contains rows after PROFILE_CUTOFF')

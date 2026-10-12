@@ -2,7 +2,7 @@
 
 Why this module exists
 ----------------------
-BM453's `asset_total` moves for two very different reasons: the market moved, or
+account_snapshots's `asset_total` moves for two very different reasons: the market moved, or
 the user paid money in / took money out. Measuring return or drawdown on the raw
 series therefore conflates investment performance with savings behaviour.
 

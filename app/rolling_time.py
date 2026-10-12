@@ -1,7 +1,7 @@
 """Point-in-time helpers for the rolling prediction dataset.
 
 All execution timestamps are normalised to America/New_York before they are
-assigned to a trading day.  The BM452 ``executed_date`` column is deliberately
+assigned to a trading day.  The trade_executions ``executed_date`` column is deliberately
 not used: it is not a reliable exchange-local date.
 """
 from __future__ import annotations
@@ -82,7 +82,7 @@ def parse_event_et(value: str | None) -> datetime | None:
 
 
 def parse_execution_et(value: str | None) -> datetime | None:
-    """Parse BM452 ``executed_at`` (stored as naive UTC) into aware ET."""
+    """Parse trade_executions ``executed_at`` (stored as naive UTC) into aware ET."""
     if not value:
         return None
     try:

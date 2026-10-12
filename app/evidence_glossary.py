@@ -5,8 +5,8 @@ Why this module exists
 The tree cites its evidence as field paths, because that is what makes a claim
 auditable:
 
-    bm453_daily[2026-09-06].holdings 按 instrument 分类聚合（7 个标的）
-    bm453_daily.asset_total=1291671.592
+    account_snapshots[2026-09-06].holdings 按 instrument 分类聚合（7 个标的）
+    account_snapshots.asset_total=1291671.592
     behavior_intent.research_depth.sessions=374
     active_days
     view_company
@@ -37,24 +37,24 @@ import re
 
 EVIDENCE_GLOSSARY_VERSION = "evidence-glossary-v1"
 
-# The data streams. Named because "bm453_daily" is an internal identifier the
+# The data streams. Named because "account_snapshots" is an internal identifier the
 # reader has never seen, and which stream a fact came from changes how much it
 # should be trusted.
 SOURCES = {
-    "bm433": ("BM433 behavior event stream",
+    "behavior_events": ("behavior_events behavior event stream",
               "In-app behavioral tracking: viewing quotes, switching periods, reading news, viewing company information, etc., reflects what the user viewed, not their actual fund movements."),
-    "bm452_trades": ("BM452 transaction records",
+    "trade_executions": ("trade_executions transaction records",
                      "Actual transaction records (transaction time, price, and quantity), the primary basis for \"what was actually done.\""),
-    "bm453_daily": ("BM453 daily account snapshots",
+    "account_snapshots": ("account_snapshots daily account snapshots",
                     "One record per trading day: total assets, securities market value, cash, and per-instrument position details (quantity, cost price, latest price, market value, unrealized P&L). The foundation for all fund-related conclusions."),
-    "bm428_conversations": ("BM428 conversation records",
+    "conversations": ("conversations conversation records",
                             "Conversation titles between the user and the AI assistant. Titles only, with no timestamps, so it cannot be determined whether \"a given recommendation was adopted\"."),
     "behavior_intent": ("Behavior Intent Engine",
-                        "Deterministic derivations from BM433 events: session segmentation, research depth, attention weights, and the correspondence between behavior and transactions."),
-    "behavior": ("Behavior Layer", "Statistical basis for BM433 behavior events."),
+                        "Deterministic derivations from behavior_events events: session segmentation, research depth, attention weights, and the correspondence between behavior and transactions."),
+    "behavior": ("Behavior Layer", "Statistical basis for behavior_events behavior events."),
     "bse": ("Behavior Signal Engine", "Observation signals derived from behavioral events."),
     "position": ("Position dynamics engine",
-                 "Inferred from BM453 daily positions: start a new position/add/trim/exit events, profit and loss status, averaging down, and profit realization behavior."),
+                 "Inferred from account_snapshots daily positions: start a new position/add/trim/exit events, profit and loss status, averaging down, and profit realization behavior."),
     "portfolio_metrics": ("Portfolio Metrics Engine", "Return and risk metrics based on a time-weighted net asset value series."),
     "trade_metrics": ("Trade metrics engine", "Holding periods and win/loss statistics based on FIFO matching."),
     "attention_capital": ("Attention-funds cross-engine", "Compare behavioral attention with actual capital allocation."),
@@ -68,7 +68,7 @@ SOURCES = {
 
 # field path -> (中文名, 含义, 局限). The limitation travels with the field.
 FIELDS = {
-    # ---- BM453 账户 ---------------------------------------------------------
+    # ---- account_snapshots 账户 ---------------------------------------------------------
     "asset_total": ("Total account assets", "The total securities market value and cash on that day.",
                     "Includes deposits and withdrawals. An increase does not mean money was earned and cannot be read as a rate of return; the rate of return must use time-weighted net asset value (with deposits and withdrawals removed)."),
     "stock_total": ("Securities market value", "The total market value of instruments held on that day, excluding cash."),
@@ -215,8 +215,8 @@ FIELDS = {
     "research": ("Research stage", "Number of events in the \"research\" stage of the intent funnel."),
 }
 
-# Which stream a prefix belongs to, longest first so `bm452_trades` is not read
-# as `bm452`.
+# Which stream a prefix belongs to, longest first so `trade_executions` is not read
+# as `trade_executions`.
 _PREFIXES = sorted(SOURCES, key=len, reverse=True)
 
 # `asset_total=1291671.592` -> path `asset_total`, value in the tail. The latin
@@ -265,7 +265,7 @@ def _phrase(text):
 
 
 def _split_source(text):
-    """`bm453_daily[2026-09-06].holdings 共 7 个` -> ("bm453_daily", rest).
+    """`account_snapshots[2026-09-06].holdings 共 7 个` -> ("account_snapshots", rest).
 
     Returns `(None, text)` when the head is not a known stream. Note that a known
     FIELD is also not a source: `active_days` names a field, not a data stream.

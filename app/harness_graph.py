@@ -50,11 +50,11 @@ _ROLLING_CONTEXT = contextvars.ContextVar("rolling_profile_context", default=Non
 # applied on top of derived.DERIVED_TTL_DAYS.
 from .derived import DERIVED_TTL_DAYS, ORDER as DERIVED_ORDER, stale_components
 
-PORTRAIT_TTL_DAYS = int(os.environ.get("BM_PORTRAIT_TTL_DAYS", "7"))
-KYC_TTL_DAYS = int(os.environ.get("BM_KYC_TTL_DAYS", "30"))
+PORTRAIT_TTL_DAYS = int(os.environ.get("PROFILE_PORTRAIT_TTL_DAYS", "7"))
+KYC_TTL_DAYS = int(os.environ.get("PROFILE_KYC_TTL_DAYS", "30"))
 # the profile tree is derived from the KYC tree + dimensions, so it is reusable
 # under the same conditions; 4 summary calls make it worth caching
-PROFILE_TREE_TTL_DAYS = int(os.environ.get("BM_PROFILE_TREE_TTL_DAYS", "30"))
+PROFILE_TREE_TTL_DAYS = int(os.environ.get("PROFILE_PROFILE_TREE_TTL_DAYS", "30"))
 
 DERIVED_TTLS = {"portrait": PORTRAIT_TTL_DAYS, "kyc_tree": KYC_TTL_DAYS,
                 "profile_tree": PROFILE_TREE_TTL_DAYS}
@@ -122,7 +122,7 @@ def load_existing(state):
 
 
 def fetch_snapshot(state):
-    ds = get_datasource(os.environ.get("BM_SOURCE_KIND", "link"), state["db_path"])
+    ds = get_datasource(os.environ.get("PROFILE_SOURCE_KIND", "link"), state["db_path"])
     cutoff = (_ROLLING_CONTEXT.get() or {}).get("cutoff_et")
     if cutoff:
         ds = ds.at(cutoff, include_conversations=False)
@@ -138,7 +138,7 @@ def validate_data(state):
     s = state["raw_snapshot"]
     acct = s.get("account_daily") or []
     latest_holdings = (acct[-1].get("holdings") if acct else {}) or {}
-    # structured BM433 intent metrics are computed here so orchestrator, gate
+    # structured behavior_events intent metrics are computed here so orchestrator, gate
     # and the read-only viewer all see the same numbers
     from .behavior import build_behavior_intent
     intent = build_behavior_intent(s)
@@ -362,8 +362,8 @@ def merger(state):
         "emotion_and_psychology": e, "investor_assessment": a,
         "limitations": ["Behavioral profile only; not financial advice or suitability.",
                         "Stated risk tolerance requires verified KYC data.",
-                        "BM428 conversation titles carry no timestamps: recency and full dialogue context are not verified.",
-                        "Account metrics come from BM453 daily labels; deposits/withdrawals can distort equity returns."],
+                        "conversations conversation titles carry no timestamps: recency and full dialogue context are not verified.",
+                        "Account metrics come from account_snapshots daily labels; deposits/withdrawals can distort equity returns."],
     }
     return {"candidate_profile": candidate, "conflicts": conflicts}
 
@@ -528,7 +528,7 @@ def update_gate(state):
             and float(x.get("confidence") or 0) >= 0.4]
     if not good:
         # A user we have never profiled still gets a profile when any stream has
-        # data. Refusing here meant someone appearing in only one BM feature
+        # data. Refusing here meant someone appearing in only one financial data feature
         # never got a profile at all, and they can never be enriched later
         # because there is nothing to enrich. It is written as `partial` so the
         # low confidence is explicit rather than hidden, and it is never allowed

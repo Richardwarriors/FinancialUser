@@ -33,24 +33,26 @@ The primary task first predicts `trade` / `no_trade`, then `buy_only` / `sell_on
 
 No research dataset is distributed, so paper results cannot be reproduced from this repository alone. Use your own authorized, anonymized data. Do not put names, email addresses, account identifiers, free-text personal disclosures or credential values into shared artifacts. `app/pii.py` and the evidence projection apply additional filtering, but input anonymization remains necessary.
 
-For the included loader, place one numeric-named JSON file per anonymous user under `data/raw_bm/`. The document has `user_id` (an anonymous identifier) and string fields `BM433`, `BM452`, `BM453`:
+For the included loader, place one numeric-named JSON file per anonymous user under `data/raw_records/`. The document has `user_id` (an anonymous identifier) and string fields `behavior_events`, `trade_executions`, `account_snapshots`:
 
-- `BM433`: timestamped behavior records (source timezone Asia/Shanghai).
-- `BM452`: `|`-separated orders with `#`-separated fields; true execution time comes from field 18 as epoch milliseconds, not the extraction date.
-- `BM453`: daily account/holdings snapshots.
+- `behavior_events`: timestamped behavior records (source timezone Asia/Shanghai).
+- `trade_executions`: `|`-separated orders with `#`-separated fields; true execution time comes from field 18 as epoch milliseconds, not the extraction date.
+- `account_snapshots`: daily account/holdings snapshots.
 
-The exact payload decoders are `vendor/parse_bm_payloads.py`. For another source format, implement an adapter producing the SQLite tables in `load_naacl_db.py:SCHEMA`, or adapt `app/datasource.py`. Keep execution timestamps in the documented naive UTC representation and snapshot dates in the source session convention.
+The exact payload decoders are `vendor/parse_financial_payloads.py`. For another source format, implement an adapter producing the SQLite tables in `load_naacl_db.py:SCHEMA`, or adapt `app/datasource.py`. Keep execution timestamps in the documented naive UTC representation and snapshot dates in the source session convention.
+
+The payload field names, SQLite table names and paths are semantic names throughout the code. Existing databases and input files must be converted to the schema shown above or rebuilt with this loader; old identifiers are not accepted as aliases. Profile settings use the `PROFILE_` environment-variable prefix (for example, `PROFILE_EVIDENCE_CACHE` and `PROFILE_SOURCE_KIND`).
 
 Create `data/users.txt` containing one anonymous user ID per line. Create `data/symbols.txt` containing the portfolio, trade and viewed symbols needed for market context, one symbol per line. These local files are intentionally not shipped.
 
 ```bash
 # Physically truncated seed database. This command recreates the specified output.
-python load_naacl_db.py --raw data/raw_bm --out data/bm_t0.db \
+python load_naacl_db.py --raw data/raw_records --out data/observations_t0.db \
   --cutoff 2026-08-01 --users-file data/users.txt
 
 # Full observation database, through the last date in your source extraction.
 # Choose a different output path so that T0 remains truncated.
-python load_naacl_db.py --raw data/raw_bm --out data/bm_full.db \
+python load_naacl_db.py --raw data/raw_records --out data/observations_full.db \
   --cutoff 2026-10-07 --users-file data/users.txt
 ```
 
@@ -61,10 +63,10 @@ Do not use the full database as the seed database. If changing T0, update `PROFI
 These profile calls may consume paid model tokens. Without credentials the engine can use deterministic fallbacks; such a run is not equivalent to the LLM experiment. Verify the recorded agent/model provenance before comparing results.
 
 ```bash
-python scripts/build_t0_profiles.py --db data/bm_t0.db --users-file data/users.txt
+python scripts/build_t0_profiles.py --db data/observations_t0.db --users-file data/users.txt
 
 # Replace N with the number of users in data/users.txt (no header).
-python export_point_in_time_profiles.py --db data/bm_t0.db \
+python export_point_in_time_profiles.py --db data/observations_t0.db \
   --out data/rolling_prediction/base_t0 --users-file data/users.txt --expected-users N
 
 # Explicit network access; the builder itself only reads cached bars.
@@ -78,14 +80,14 @@ Market fetching includes SPY and QQQ and maps options to their underlying symbol
 
 ```bash
 # Calendar/cohort inspection: no model calls.
-python build_rolling_dataset.py --t0-db data/bm_t0.db \
-  --full-db data/bm_full.db --users-file data/users.txt \
+python build_rolling_dataset.py --t0-db data/observations_t0.db \
+  --full-db data/observations_full.db --users-file data/users.txt \
   --out data/rolling_prediction --base-dir data/rolling_prediction/base_t0 \
   --market-cache data/market_raw --end 2026-10-07 --prediction-sessions 40 --dry-run
 
 # Omit --dry-run to build. Declare coverage ONLY if execution extraction is complete.
-python build_rolling_dataset.py --t0-db data/bm_t0.db \
-  --full-db data/bm_full.db --users-file data/users.txt \
+python build_rolling_dataset.py --t0-db data/observations_t0.db \
+  --full-db data/observations_full.db --users-file data/users.txt \
   --out data/rolling_prediction --base-dir data/rolling_prediction/base_t0 \
   --market-cache data/market_raw --end 2026-10-07 --prediction-sessions 40 \
   --execution-coverage-through 2026-10-07
@@ -95,7 +97,7 @@ python check_rolling_dataset.py --out data/rolling_prediction \
 python audit_rolling_leakage.py --samples-dir data/rolling_prediction/samples
 ```
 
-If your source is incomplete or ends earlier, shorten `--end` and declare the actual known-complete date. Omitting `--execution-coverage-through` preserves unknown labels for unverified inactivity. The audit's independent label recheck reads `data/bm_full.db` by default.
+If your source is incomplete or ends earlier, shorten `--end` and declare the actual known-complete date. Omitting `--execution-coverage-through` preserves unknown labels for unverified inactivity. The audit's independent label recheck reads `data/observations_full.db` by default.
 
 The builder refreshes changed profile dimensions and writes immutable daily profiles plus `samples/<user_id>/<prediction_date>.json`. It can resume existing profiles and samples at the current schema. Samples at older schemas must be rebuilt; do not bypass schema checks to mix experiments.
 

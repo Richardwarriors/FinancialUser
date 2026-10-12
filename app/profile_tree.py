@@ -197,7 +197,7 @@ L1_ORDER = [
 assert set(L1_ORDER) == set(L1_DEFS), f"L1_ORDER/L1_DEFS mismatch: {set(L1_ORDER) ^ set(L1_DEFS)}"
 
 # ---------------------------------------------------------------------------
-# NAACL27 fork: narrow the tree to the dimensions the BM streams can support.
+# NAACL27 fork: narrow the tree to the dimensions the financial data streams can support.
 # The full definitions above are kept intact so the fork stays revertible; only
 # the *effective* contract is filtered. See app/naacl_config.py for the rationale
 # and the list of dropped dimensions.
@@ -415,7 +415,7 @@ def _leaf(key, label, value, display, status, evidence=None,
     `evidence` stays the raw citation (the audit trail); `evidence_plain` carries the
     same lines rendered for a person. Both are emitted because they answer different
     questions — "can I verify this?" and "what does this mean?" — and a citation
-    like `bm453_daily[2026-09-06].holdings 按 instrument 分类聚合` answers only the
+    like `account_snapshots[2026-09-06].holdings 按 instrument 分类聚合` answers only the
     first.
     """
     clean = _clean_evidence(evidence)
@@ -694,7 +694,7 @@ def build_profile_tree(profile, kyc_tree=None, attention_capital=None,
     `evidence` is the full deterministic package. When supplied, `app/l2_taxonomy`
     contributes the curated sub-dimensions (goals -> time horizon / return
     objective / …, risk -> observed capacity / structural exposure / …) computed
-    from BM433 + BM452 + BM453. Without it the tree keeps only its KYC/dimension
+    from behavior_events + trade_executions + account_snapshots. Without it the tree keeps only its KYC/dimension
     L2, which is the pre-v2.8 shape: 6 of the 10 L1 had no subdivision at all.
     """
     ctx = {"profile": profile or {}, "kyc_tree": kyc_tree or {},

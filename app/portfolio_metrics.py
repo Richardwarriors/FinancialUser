@@ -2,14 +2,14 @@
 
 Source substitution
 -------------------
-The spec was written against BM451 (weekly holding snapshots) and BM426 (6-month
-equity summary). Both were retired in favour of BM453 (daily account snapshots),
+The spec was written against weekly_holdings (weekly holding snapshots) and equity_summary (6-month
+equity summary). Both were retired in favour of account_snapshots (daily account snapshots),
 which is strictly richer, so the same metrics are computed here at daily
 granularity and simply aggregated to the requested windows:
 
     "latest week"   -> the most recent 7 calendar days of daily snapshots
     "past 4 weeks"  -> the most recent 28 days
-    BM426 fields    -> recomputed from the daily series, flow-adjusted
+    equity_summary fields    -> recomputed from the daily series, flow-adjusted
 
 Two consequences worth stating plainly:
 
@@ -120,7 +120,7 @@ def short_term(rows, trades):
         "weekly_pnl": {
             "weekly_pnl": round(weekly_pnl, 2),
             "weekly_return_pct": wr,
-            "basis": "unrealized P&L from BM453 holdings; return from flow-adjusted curve",
+            "basis": "unrealized P&L from account_snapshots holdings; return from flow-adjusted curve",
             "caveat": "Unrealized P&L excludes fees and taxes and covers only current positions",
         },
         "short_term_trading": {
@@ -179,7 +179,7 @@ def medium_term(rows, trades):
             "avg_positions_4w": round(_mean([p for p in pos_series]), 2) if pos_series else None,
             "max_positions_4w": max(pos_series) if pos_series else None,
             "avg_leverage_4w": _avg_leverage(rows),
-            "leverage_note": "Account leverage = securities market value / total assets (equivalent definition to BM426's avg_leverage_asset_over_net)",
+            "leverage_note": "Account leverage = securities market value / total assets (equivalent definition to equity_summary's avg_leverage_asset_over_net)",
         },
         "medium_term_trading": {
             "monthly_turnover": _safe_div(amt30, latest_mv, 4) if latest_mv else None,
@@ -284,11 +284,11 @@ def build_portfolio_metrics(snap):
     rows = _rows(snap)
     trades = snap.get("trades_6m") or []
     if not rows:
-        return {"available": False, "note": "No BM453 daily account snapshot"}
+        return {"available": False, "note": "No account_snapshots daily account snapshot"}
     return {
         "available": True,
         "version": METRIC_VERSION,
-        "granularity": "daily (BM453) — replaces BM451 weekly + BM426 summary",
+        "granularity": "daily (account_snapshots) — replaces weekly_holdings weekly + equity_summary summary",
         "observation_days": len(rows),
         "observation_range": [rows[0].get("snapshot_date"), rows[-1].get("snapshot_date")],
         "short_term": short_term(rows, trades),

@@ -70,7 +70,7 @@ def geographic_and_currency_exposure(acct, trades=None, intent=None):
         display,
         "Classify by the issuer's registered location for held instruments (US-listed ADRs/foreign ordinary shares are counted as non-US based on registered location)",
         "Only covers the instrument's place of registration, not the currency or actual trading currency; instruments not listed are treated as U.S. stocks, so non-U.S. exposure is a lower-bound estimate",
-        [f"bm453_daily[{as_of}].holdings mapped by issuer domicile",
+        [f"account_snapshots[{as_of}].holdings mapped by issuer domicile",
          f"Non-U.S. instruments {'、'.join(str(x) for x in foreign[:5])} collectively account for {non_us * 100:.1f}% of securities market value"],
         0.55)
 
@@ -87,7 +87,7 @@ def illiquid_asset_exposure(acct, trades=None, intent=None):
         f"A total of {len(book)} positions in platform-visible accounts, all securities tradable on the secondary market; no illiquid assets observed (private funds, unlisted equity, real estate, etc. are outside the visible scope)",
         "Tradability of account holding details",
         "This is a qualified conclusion of \"zero within the visible scope\" and does not mean the user has no illiquid assets outside their platform",
-        [f"bm453_daily[{as_of}].holdings are all exchange-listed instruments"],
+        [f"account_snapshots[{as_of}].holdings are all exchange-listed instruments"],
         0.5, estimate=False)
 
 
@@ -98,9 +98,9 @@ def external_asset_coverage(acct, trades=None, intent=None):
     return _p(
         {"visible_scope": "platform_account_only"},
         "This profile covers only the user's securities account on the platform; external assets such as bank accounts, other brokerage accounts, retirement accounts, and real estate are not visible, so any conclusion about total assets is incomplete",
-        "Data access scope (BM453 is the platform account snapshot)",
+        "Data access scope (account_snapshots is the platform account snapshot)",
         "This is not an assessment of the user's total assets, only a description of the visible scope",
-        ["BM453 account snapshots contain only platform accounts"],
+        ["account_snapshots account snapshots contain only platform accounts"],
         0.6, estimate=False)
 
 
@@ -124,14 +124,14 @@ def employer_stock_concentration(acct, trades=None, intent=None):
             f"No excessive concentration in a single holding observed (maximum holding {code} accounts for {share * 100:.0f}%), so no employer-stock-like concentrated risk pattern exists",
             "Maximum single-position share of securities market value",
             "Cannot identify whether the holding is employer stock (no employer information); only the concentration pattern is assessed here",
-            [f"bm453_daily[{as_of}].holdings top1={code} {share * 100:.1f}%"],
+            [f"account_snapshots[{as_of}].holdings top1={code} {share * 100:.1f}%"],
             0.5)
     return _p(
         {"as_of": as_of, "top1_share": round(share, 4), "top1": code, "flag": True},
         f"A single holding is highly concentrated: {code} accounts for {share * 100:.0f}% of securities market value. Cannot confirm whether it is employer stock (employer information unavailable), but its risk profile is consistent with employer stock concentration",
         "Maximum single-position share (employer identity unavailable, replaced with equivalent risk profile)",
         "Cannot confirm the relationship between this instrument and the user's occupation; this describes concentration risk, not an employer stock conclusion",
-        [f"bm453_daily[{as_of}].holdings top1={code} {share * 100:.1f}%",
+        [f"account_snapshots[{as_of}].holdings top1={code} {share * 100:.1f}%",
          f"Total {len(book)} positions, total securities market value {total:,.0f}"],
         0.5)
 
@@ -145,7 +145,7 @@ def account_or_goal_specific_risk_level(acct, trades=None, intent=None):
         "This risk assessment applies only to the platform account as a whole and is not split by goal or across multiple accounts; if the user has other accounts or funds for different purposes, the risk level must be assessed separately",
         "Data access scope (single-account snapshot)",
         "This is a scope description, not risk levels assigned separately to each account",
-        ["BM453 single-account basis"],
+        ["account_snapshots single-account basis"],
         0.6, estimate=False)
 
 
@@ -178,7 +178,7 @@ def emergency_fund_runway(acct, trades=None, intent=None):
             f"Account cash is approximately {cash:,.0f}; no identifiable net outflows occurred during the observation window, so the cash-support duration cannot be estimated from this basis (this does not mean there were no external expenses)",
             "Cash balance and observed outflow records",
             "Only counts transfers out within the platform; the user's daily spending is not visible, so this conclusion cannot be equated with emergency fund coverage",
-            [f"bm453_daily.money_remain={cash}", "No external transfer-out records"],
+            [f"account_snapshots.money_remain={cash}", "No external transfer-out records"],
             0.45, estimate=False)
     if not out_pm:
         return _p(
@@ -186,7 +186,7 @@ def emergency_fund_runway(acct, trades=None, intent=None):
             f"Account cash is approximately {cash:,.0f}; all cash flows during the observation window were net inflows, with no outflow baseline available for estimating the support duration",
             "Cash balance and net inflow records",
             "Supportable months can only be estimated after net outflows occur",
-            [f"bm453_daily.money_remain={cash}", f"All {len(flows)} deposits and withdrawals are net inflows"],
+            [f"account_snapshots.money_remain={cash}", f"All {len(flows)} deposits and withdrawals are net inflows"],
             0.45, estimate=False)
     months = cash / out_pm
     # A runway is only meaningful against a real spending baseline. A handful of
@@ -200,16 +200,16 @@ def emergency_fund_runway(acct, trades=None, intent=None):
             f"Account cash is approximately {cash:,.0f}; however, during the observation window there were only {len([f for f in flows if f['amount'] < 0])} outgoing transfers, averaging {out_pm:,.0f} per month, with amounts too small to serve as a spending baseline, so no supportable number of months is provided (to avoid producing a meaningless long-horizon estimate)",
             "Whether cash balance and observed outflows constitute a usable baseline",
             "Too few transfer-out samples or amounts too small; actual emergency coverage requires expenditure information, and in-platform data cannot provide a reliable value",
-            [f"bm453_daily.money_remain={cash}",
+            [f"account_snapshots.money_remain={cash}",
              f"Monthly average outflows {out_pm:,.0f}, accounting for {out_pm / max(cash, 1) * 100:.2f}% of cash"],
             0.35, estimate=False)
     return _p(
         {"cash": round(cash, 2), "monthly_net_outflow": round(out_pm, 2),
          "months": round(months, 1), "observed_flows": len(flows)},
         f"Based on the average monthly net outflow of {out_pm:,.0f} during the observation window, cash {cash:,.0f} in the account can cover approximately {months:.1f} months; this is the lower bound on an account basis and excludes the user's external cash and income",
-        "Cash balance ÷ observed average monthly net outflows (BM453 cash flow inference)",
+        "Cash balance ÷ observed average monthly net outflows (account_snapshots cash flow inference)",
         "Covers only transfers out within the platform, excluding daily consumption and spending from external accounts; the sample period is limited, so average monthly outflows may not represent long-term levels",
-        [f"bm453_daily.money_remain={cash}",
+        [f"account_snapshots.money_remain={cash}",
          f"Inferred average monthly net outflow {out_pm:,.0f} ({len(flows)} transactions)"],
         0.4)
 
@@ -230,17 +230,17 @@ def total_debt_band(acct, trades=None, intent=None):
         return _p(
             {"in_account_debt_detected": False, "days_with_margin": 0},
             "No instance during the observation window where securities market value exceeded total assets; no margin liabilities detected in the account",
-            "Relationship between stock_total and asset_total in BM453",
+            "Relationship between stock_total and asset_total in account_snapshots",
             "Can only reflect financing within this platform account; external liabilities such as mortgages and consumer loans are entirely unobservable.",
-            [f"bm453_daily stock_total ≤ asset_total on {len(acct)} days"],
+            [f"account_snapshots stock_total ≤ asset_total on {len(acct)} days"],
             0.55)
     return _p(
         {"in_account_debt_detected": True, "days_with_margin": len(days),
          "peak_margin_amount": round(max_gap, 2), "peak_date": worst_date},
         f"Detected account financing: securities market value exceeded total assets on {len(days)} days, with a peak of approximately {max_gap:,.0f} ({worst_date})",
-        "Number of days and difference where stock_total > asset_total in BM453",
+        "Number of days and difference where stock_total > asset_total in account_snapshots",
         "Only covers margin liabilities within the account and excludes various loans outside the account; the difference may also be affected by the valuation time",
-        [f"In bm453_daily, stock_total > asset_total×1.01 on {len(days)} days",
+        [f"In account_snapshots, stock_total > asset_total×1.01 on {len(days)} days",
          f"Peak gap {max_gap:,.0f} ({worst_date})"],
         0.5)
 
@@ -269,7 +269,7 @@ def planned_contribution(acct, trades=None, intent=None):
         return _p(
             {"observed": False, "events": 0},
             "No external deposits identified during the observation window, so no funding plan can be inferred; funds may have already been in place, or the deposit may have occurred outside this platform",
-            "BM453 inferred deposits and withdrawals",
+            "account_snapshots inferred deposits and withdrawals",
             "No deposit records do not mean the user has no investment plan; they only indicate that no deposits occurred within the observable window",
             ["No external deposit records"],
             0.4, estimate=False)
@@ -281,7 +281,7 @@ def planned_contribution(acct, trades=None, intent=None):
         (f"{cad['count']} deposits occurred during the observation window, equivalent to approximately {cad['monthly']:,.0f} per month,"
          + ("Amount is fairly regular, close to a fixed investment rhythm" if regular else
             "Amount fluctuates significantly, more like opportunistic investment than fixed regular investment")),
-        "Number, amount, and time distribution of deposits inferred by BM453",
+        "Number, amount, and time distribution of deposits inferred by account_snapshots",
         "This is deposited-funds behavior that has already occurred, not the user's declared future investment plan; plans outside the window are not visible",
         [f"Inferred deposits: {cad['count']} transactions, median amount {cad['median']:,.0f}",
          f"Dates {'、'.join(str(d) for d in cad['dates'][:4])}"],
@@ -298,7 +298,7 @@ def planned_withdrawal(acct, trades=None, intent=None):
         return _p(
             {"observed": False, "events": 0},
             "No external withdrawals identified during the observation window, so no withdrawal plan can be inferred; this may mean funds remain in an ongoing investment phase, or the withdrawal occurred through another account",
-            "BM453 inferred deposits and withdrawals",
+            "account_snapshots inferred deposits and withdrawals",
             "No withdrawal records do not mean there is no withdrawal demand; they only indicate that no withdrawals occurred within the observable window",
             ["No external withdrawal records"],
             0.4, estimate=False)
@@ -308,7 +308,7 @@ def planned_withdrawal(acct, trades=None, intent=None):
         {"observed": True, "events": len(outs), "monthly_avg": round(monthly, 2),
          "dates": [f["date"] for f in outs]},
         f"{len(outs)} withdrawals occurred during the observation window, equivalent to approximately {monthly:,.0f} per month; the account has a need for fund withdrawals, so return evaluation requires assessment by time and permissions",
-        "Number and amount of withdrawals inferred by BM453",
+        "Number and amount of withdrawals inferred by account_snapshots",
         "Withdrawals already made do not equal planned withdrawals; purpose unknown",
         [f"Inferred {len(outs)} withdrawals, monthly average {monthly:,.0f}",
          f"Dates {'、'.join(str(f['date']) for f in outs[:4])}"],

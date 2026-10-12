@@ -1,8 +1,8 @@
-"""BM453 Position Dynamics: daily snapshots -> capital decision events.
+"""account_snapshots Position Dynamics: daily snapshots -> capital decision events.
 
 Positioning
 -----------
-BM453 is not "what I hold", it is **how I manage a position after I hold it**.
+account_snapshots is not "what I hold", it is **how I manage a position after I hold it**.
 This module turns the daily snapshot into an event stream (OPEN / ADD / REDUCE /
 CLOSE / REENTER) with the context needed to interpret each one, then aggregates
 that into decision-behaviour metrics: capital deployment, conviction, scale-in /
@@ -416,7 +416,7 @@ def capital_management(days):
         "coverage": coverage,
         "used_days": len(inv),
         "excluded_days": excluded,
-        "note": ("invested_ratio = stock_total / asset_total. Switch count is calculated from transitions between the risk_on(≥70%) / risk_off(≤35%) buckets; intermediate states are excluded. Trading days with inconsistent total assets and holdings/cash were excluded (this field is not reliable in BM453)."),
+        "note": ("invested_ratio = stock_total / asset_total. Switch count is calculated from transitions between the risk_on(≥70%) / risk_off(≤35%) buckets; intermediate states are excluded. Trading days with inconsistent total assets and holdings/cash were excluded (this field is not reliable in account_snapshots)."),
     }
     if coverage < MIN_COVERAGE:
         out["ratio_withheld"] = (
@@ -619,7 +619,7 @@ def outcome_response(eps, events):
                        "deep_depth": AVERAGE_DOWN_DEEP_DEPTH,
                        "min_episodes": MIN_EPISODES_FOR_STYLE},
         "evidence_requirement": (f"A tendency is provided only with ≥{MIN_EPISODES_FOR_STYLE} episodes; a. A single case is insufficient for classification"),
-        "interpretation_limit": ("The observed behavior is \"adding to a position when losing\"; motivation cannot be inferred from this alone (it may be bottom-fishing, averaging down, maintaining conviction, or anchoring). Motivation assessment requires combining BM433 research and BM428 self-report."),
+        "interpretation_limit": ("The observed behavior is \"adding to a position when losing\"; motivation cannot be inferred from this alone (it may be bottom-fishing, averaging down, maintaining conviction, or anchoring). Motivation assessment requires combining behavior_events research and conversations self-report."),
         "depth_note": (f'Only add-ons with unrealized loss ≥{AVERAGE_DOWN_MIN_DEPTH:.0%} are counted as averaging down; those below this threshold ({len(shallow)}/{n_up} episodes for this user) are listed separately as "shallow underwater top-ups" because within this range, the add-on price is almost indistinguishable from the cost basis.'),
     }
 
@@ -629,10 +629,10 @@ def outcome_response(eps, events):
 def build_position_dynamics(snap, max_events=200):
     account = snap.get("account_daily") or []
     if not account:
-        return {"available": False, "note": "No BM453 account snapshot"}
+        return {"available": False, "note": "No account_snapshots account snapshot"}
     days = build_days(account)
     if not days:
-        return {"available": False, "note": "BM453 snapshot cannot be parsed"}
+        return {"available": False, "note": "account_snapshots snapshot cannot be parsed"}
 
     events = diff_events(days)
     eps = episodes(events)

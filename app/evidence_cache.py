@@ -1,6 +1,6 @@
 """Evidence cache: skip recomputation when the inputs are unchanged.
 
-Measured cost of the deterministic layer for one core user (3,713 BM433 events,
+Measured cost of the deterministic layer for one core user (3,713 behavior_events events,
 256 trades, 90 account days):
 
     fetch      0.09s
@@ -32,8 +32,8 @@ from datetime import datetime, timezone
 
 CACHE_VERSION = "evidence-cache-v1"
 # how many cached rows to retain; the eviction is by recency, not per user
-MAX_ROWS = int(os.environ.get("BM_EVIDENCE_CACHE_MAX_ROWS", "20000"))
-ENABLED = os.environ.get("BM_EVIDENCE_CACHE", "1") not in ("0", "false", "False")
+MAX_ROWS = int(os.environ.get("PROFILE_EVIDENCE_CACHE_MAX_ROWS", "20000"))
+ENABLED = os.environ.get("PROFILE_EVIDENCE_CACHE", "1") not in ("0", "false", "False")
 
 
 def source_hash(snapshot):

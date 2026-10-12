@@ -7,11 +7,11 @@ real data; these are all computed, so they never need a questionnaire to fill.
 
 Two of the four signals were named explicitly in the source spec
 (`research_depth_signal`, `advice_acceptance_pattern`); the other two are
-derived from what the BM streams can actually support, and are flagged as such.
+derived from what the financial data streams can actually support, and are flagged as such.
 
 Honesty constraints that shaped this module:
 
-* BM428 conversation titles carry **no timestamps**. So "advice acceptance"
+* conversations conversation titles carry **no timestamps**. So "advice acceptance"
   cannot be measured as "was advised -> then acted" — that ordering is not in
   the data. We measure advice-*seeking* behaviour and state the limitation
   rather than implying a causal chain.
@@ -63,7 +63,7 @@ _CONV_LABEL = {
 
 
 def classify_conversations(snap):
-    """Bucket BM428 titles by what the user is asking for."""
+    """Bucket conversations titles by what the user is asking for."""
     titles = [str(x.get("title") or "").strip() for x in (snap.get("conversations_1m") or [])]
     titles = [t for t in titles if t]
     counts = Counter()
@@ -77,7 +77,7 @@ def classify_conversations(snap):
 # ---------- signal builders ----------
 
 def research_depth_signal(snap, intent, weights_state):
-    """How deep does the research actually go (BM433 structure, not volume)."""
+    """How deep does the research actually go (behavior_events structure, not volume)."""
     if not intent or not intent.get("available"):
         return None
     rd = intent.get("research_depth") or {}
@@ -130,7 +130,7 @@ def research_depth_signal(snap, intent, weights_state):
 
 
 def attention_persistence_signal(snap, intent, weights_state=None):
-    """One-off curiosity vs sustained tracking (BM433 time spread)."""
+    """One-off curiosity vs sustained tracking (behavior_events time spread)."""
     if not intent or not intent.get("available"):
         return None
     tot = intent.get("totals") or {}
@@ -192,7 +192,7 @@ def execution_discipline_signal(snap, intent, weights_state=None):
                 "display": "No executed trades, so the relationship between "
                            "research and execution cannot be assessed.",
                 "evidence": [], "confidence": 0.2,
-                "data_needed": ["Execution data (BM452) is required"]}
+                "data_needed": ["Execution data (trade_executions) is required"]}
 
     prior = b2t.get("prior_research_rate")
     lat = (b2t.get("research_to_trade_latency_hours") or {}).get("median")
@@ -239,7 +239,7 @@ def execution_discipline_signal(snap, intent, weights_state=None):
 
 
 def advice_acceptance_pattern(snap, intent, weights_state=None):
-    """Advice-seeking behaviour from BM428.
+    """Advice-seeking behaviour from conversations.
 
     Named `advice_acceptance` in the source spec, but the stream has no
     timestamps, so acceptance (advice -> subsequent action) is NOT observable.
@@ -251,7 +251,7 @@ def advice_acceptance_pattern(snap, intent, weights_state=None):
                 "display": "No conversation record, so advice-seeking behaviour "
                            "cannot be observed.",
                 "evidence": [], "confidence": 0.2,
-                "data_needed": ["The BM428 conversation stream is required"]}
+                "data_needed": ["The conversations conversation stream is required"]}
 
     n = len(titles)
     asked = sum(counts.values())
@@ -280,12 +280,12 @@ def advice_acceptance_pattern(snap, intent, weights_state=None):
         or "no identifiable category"
     return {
         "value": label, "status": "filled",
-        "display": f"{note}. {n} conversations: {mix}. Note: BM428 titles carry no "
+        "display": f"{note}. {n} conversations: {mix}. Note: conversations titles carry no "
                    f"timestamps, so whether advice was adopted cannot be aligned "
                    f"with later trades; this describes advice-seeking behaviour "
                    f"only, not acceptance.",
-        "evidence": [f"bm428_conversations total {n}, {asked} matched a category",
-                     f"bm428 account questions {account}, direct price-target "
+        "evidence": [f"conversations total {n}, {asked} matched a category",
+                     f"conversations account questions {account}, direct price-target "
                      f"questions {direct}, analysis questions {deep}"],
         "confidence": 0.7 if n >= 10 else 0.5,
         "coverage": "deterministic", "method": "rule",
@@ -300,15 +300,15 @@ SIGNALS = [
     ("research_depth_signal", "Research Depth Signal",
      "Depth of research effort shown by behavioural evidence (quote watching vs "
      "fundamentals/earnings-level work)",
-     ["BM433"]),
+     ["behavior_events"]),
     ("attention_persistence_signal", "Attention Persistence Signal",
-     "Whether attention is one-off or tracked across days", ["BM433"]),
+     "Whether attention is one-off or tracked across days", ["behavior_events"]),
     ("advice_acceptance_pattern", "Advice Acceptance Pattern",
      "How the user asks for advice in conversation (note: no timestamps, so "
-     "adoption cannot be determined)", ["BM428"]),
+     "adoption cannot be determined)", ["conversations"]),
     ("execution_discipline_signal", "Execution Discipline Signal",
      "Whether research precedes trading, and the research-to-order interval",
-     ["BM433", "BM452", "BM453"]),
+     ["behavior_events", "trade_executions", "account_snapshots"]),
 ]
 
 BUILDERS = {
@@ -346,7 +346,7 @@ def build_behavior_signals(snap, intent=None, evidence=None):
         "filled": filled,
         "note": ("B-class signals observe platform behaviour. They are deliberately "
                  "outside the KYC 7 L1 / 60 L3 feature count, are computed directly "
-                 "from BM data without a questionnaire, and do not replace a KYC "
+                 "from financial data data without a questionnaire, and do not replace a KYC "
                  "conclusion."),
         "signals": out,
     }

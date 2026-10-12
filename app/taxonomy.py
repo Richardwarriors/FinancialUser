@@ -1,6 +1,6 @@
 """Shared taxonomy: entity linking, sector/theme mapping, keyword matching.
 
-Used by both the evidence builder and the BM433 behavior engine so a ticker is
+Used by both the evidence builder and the behavior_events behavior engine so a ticker is
 classified identically everywhere. Static tables on purpose: deterministic and
 auditable, no network, no LLM.
 """
@@ -32,7 +32,7 @@ SECTOR_MAP = {
     "OKLO": ("Nuclear/Energy", "Energy"), "IREN": ("Crypto Proxy", "Crypto"),
     "HOOD": ("Brokerage/Fintech", "Growth"), "IONQ": ("Quantum", "Growth"),
     "BTC": ("Crypto", "Crypto"), "ETH": ("Crypto", "Crypto"), "USDT": ("Crypto", "Crypto"),
-    # tickers observed in the BM433 event vocabulary
+    # tickers observed in the behavior_events event vocabulary
     "SGOV": ("Treasury ETF", "Income"), "DIA": ("Index ETF", "Broad"),
     "VOO": ("Index ETF", "Broad"), "VTI": ("Index ETF", "Broad"),
     "RKLX": ("Space", "Growth"), "QBTS": ("Quantum", "Growth"),
@@ -55,7 +55,7 @@ SECTOR_MAP = {
     "SNOW": ("Software/AI", "AI"), "NOW": ("Software/AI", "AI"),
 }
 
-# Company / product names as they actually appear in BM433 news and BM428
+# Company / product names as they actually appear in behavior_events news and conversations
 # conversation titles (mostly Chinese). Mapped to a ticker so the sector/theme
 # lookup stays shared.
 NAME_ALIASES = {
@@ -70,7 +70,7 @@ NAME_ALIASES = {
     "甲骨文": "ORCL", "oracle": "ORCL", "博通": "AVGO", "broadcom": "AVGO",
     "超微": "AMD", "高通": "QCOM", "qualcomm": "QCOM", "奈飞": "NFLX",
     "netflix": "NFLX", "礼来": "LLY", "波音": "BA", "boeing": "BA",
-    # English company names that dominate the BM433 news corpus
+    # English company names that dominate the behavior_events news corpus
     "meta platforms": "META", "palantir": "PLTR", "broadcom": "AVGO",
     "micron technology": "MU", "advanced micro": "AMD", "salesforce": "CRM",
     "goldman sachs": "GS", "morgan stanley": "MS", "jp morgan": "JPM",
@@ -82,8 +82,8 @@ NAME_ALIASES = {
     "cloudflare": "NET", "servicenow": "NOW", "coreweave": "CRWV",
 }
 
-# Macro / geopolitical entities. The BM433 news stream is English while the
-# BM428 conversation titles are Chinese, so both spellings are needed — using
+# Macro / geopolitical entities. The behavior_events news stream is English while the
+# conversations conversation titles are Chinese, so both spellings are needed — using
 # only Chinese here silently dropped the largest news topics in the corpus
 # (Trump, Iran, Fed, CPI, China...).
 MACRO_ENTITIES = {
@@ -154,7 +154,7 @@ def country_of(ticker):
 
 
 def parse_ts(s):
-    """Parse the several timestamp shapes that appear in the BM streams.
+    """Parse the several timestamp shapes that appear in the financial data streams.
 
     Handles ISO with offset (`2026-08-11T20:31:00-05:00`), ISO without
     (`2026-08-13T12:00`), date-only (`2026-08-13`) and the compact collector

@@ -1,6 +1,6 @@
 """Deterministic Evidence Builder.
 
-Raw BM streams -> compact, auditable evidence packages.
+Raw financial data streams -> compact, auditable evidence packages.
 NO LLM here: every number must be reproducible from the snapshot.
 """
 import re
@@ -51,7 +51,7 @@ def _f(v, default=None):
 
 
 def behavior_evidence(snap):
-    """BM433 -> viewing/timeframe/research behavior summary."""
+    """behavior_events -> viewing/timeframe/research behavior summary."""
     ev = snap["behaviors_6m"]
     if not ev:
         return {"available": False}
@@ -89,7 +89,7 @@ def behavior_evidence(snap):
 
 
 def trade_evidence(snap):
-    """BM452 -> executed-trade statistics."""
+    """trade_executions -> executed-trade statistics."""
     tr = [t for t in snap["trades_6m"] if (t.get("execution_state") or "executed") == "executed"]
     if not tr:
         return {"available": False}
@@ -152,7 +152,7 @@ def behavior_trade_matching(snap, window_hours=48):
 
 
 def position_evidence(snap):
-    """BM453 -> daily holding-book series (replaces the BM451 weekly view).
+    """account_snapshots -> daily holding-book series (replaces the weekly_holdings weekly view).
 
     All metrics are computed locally from the daily snapshot so the harness
     owns the arithmetic instead of trusting a pre-aggregated upstream label.
@@ -243,7 +243,7 @@ def position_evidence(snap):
 
 
 def asset_evidence(snap):
-    """BM453 -> equity-curve metrics on a cash-flow-adjusted curve.
+    """account_snapshots -> equity-curve metrics on a cash-flow-adjusted curve.
 
     The raw `asset_total` series moves for two reasons — the market moved, or the
     user added/withdrew money. Measuring return and drawdown on it therefore
@@ -327,7 +327,7 @@ _ZH_RE = ZH_RE
 
 
 def conversation_evidence(snap):
-    """BM428 -> what the user actually asks about (conversation titles).
+    """conversations -> what the user actually asks about (conversation titles).
 
     The stream carries no timestamps, so no recency claim is made: the
     evidence is topical and self-referential only.
@@ -466,7 +466,7 @@ def trading_digest(tm, pm, asset=None):
 def build_evidence(snap, behavior_intent=None):
     """Assemble the evidence package.
 
-    `behavior_intent` lets the caller pass an already-computed BM433 engine
+    `behavior_intent` lets the caller pass an already-computed behavior_events engine
     result (the harness computes it during validation, so recomputing it here
     would double the per-user cost on multi-thousand-event users).
     """
@@ -476,7 +476,7 @@ def build_evidence(snap, behavior_intent=None):
     trade_metrics = build_trade_metrics(d.get("trades_6m") or [])
     portfolio_metrics = build_portfolio_metrics(d)
     asset_ev = asset_evidence(d)
-    # BM453 position dynamics and the BM433xBM453 cross engine. Both are large
+    # account_snapshots position dynamics and the behavior_events × account_snapshots cross engine. Both are large
     # (6-13KB each) so only the digests are exposed as evidence streams; the
     # full blocks ride along on the profile as computed output.
     position_dynamics = build_position_dynamics(d)

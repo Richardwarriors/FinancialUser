@@ -17,8 +17,8 @@ That is a table of contents, not a profile. An L1 with no subdivision cannot be 
 on: 「风险偏好: 激进」 and 「风险偏好 › 结构性敞口 › 杠杆占比 42%」 support completely
 different decisions.
 
-This module builds the missing depth from the evidence that IS available — BM433
-(behaviour), BM452 (trades), BM453 (daily account) and the deterministic engines
+This module builds the missing depth from the evidence that IS available — behavior_events
+(behaviour), trade_executions (trades), account_snapshots (daily account) and the deterministic engines
 derived from them — rather than from the questionnaire fields that never arrive.
 
 Design rules, inherited from the rest of the tree:
@@ -623,7 +623,7 @@ def _risk_preference(ev):
     if conv.get("available") and conv.get("count"):
         leaves.append(leaf(
             "stated_tolerance_proxy", "Stated risk intent (conversation topic proxy)",
-            f"BM428 has {conv['count']} conversations, including {conv.get('self_reference_count', 0)} self-referential/account-related conversations"
+            f"conversations has {conv['count']} conversations, including {conv.get('self_reference_count', 0)} self-referential/account-related conversations"
             + ("; The conversation title has no timestamp, so it cannot be determined whether it relates to a specific decision"
                if True else ""),
             status=PROXY,

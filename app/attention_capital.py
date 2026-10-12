@@ -1,15 +1,15 @@
-"""Attention x Capital alignment: BM433 (attention) x BM453 (capital).
+"""Attention x Capital alignment: behavior_events (attention) x account_snapshots (capital).
 
 The premise
 -----------
-BM433 says where the user's **attention** goes; BM453 says where their **money**
+behavior_events says where the user's **attention** goes; account_snapshots says where their **money**
 goes. Crossing them answers questions neither stream can answer alone: is this
 a monitored conviction holding, a passive core position, an exploration that
 never converted, or capital committed without any monitoring?
 
 Reach
 -----
-152 of 157 users have both streams (against only 7 with BM452 trades), so this
+152 of 157 users have both streams (against only 7 with trade_executions trades), so this
 is the first cross-source analysis in the project that works at corpus scale.
 
 Honesty rules applied throughout
@@ -773,17 +773,17 @@ def decision_funnel(events, lifecycle, entries, scale_ups, values, days):
 # ---------- entry point ----------
 
 def build_attention_capital(snap, intent=None, max_examples=10):
-    """Cross BM433 attention with BM453 capital. Deterministic, no LLM."""
+    """Cross behavior_events attention with account_snapshots capital. Deterministic, no LLM."""
     behaviors = snap.get("behaviors_6m") or []
     account = sorted(snap.get("account_daily") or [],
                      key=lambda d: d.get("snapshot_date") or "")
     if not behaviors or not account:
         return {"available": False,
-                "note": "Requires both the BM433 behavior stream and BM453 account snapshot"}
+                "note": "Requires both the behavior_events behavior stream and account_snapshots account snapshot"}
 
     events = normalize_stream(behaviors)
     if not events:
-        return {"available": False, "note": "BM433 event cannot be parsed"}
+        return {"available": False, "note": "behavior_events event cannot be parsed"}
     build_sessions(events)
 
     # gate FIRST: a gap day must not be read as liquidation, and day 1 is a gap
@@ -792,7 +792,7 @@ def build_attention_capital(snap, intent=None, max_examples=10):
     gated = build_days(account)
     days, weights, values, pnl, states = capital_timeline(gated)
     if not days:
-        return {"available": False, "note": "BM453 has no usable snapshots"}
+        return {"available": False, "note": "account_snapshots has no usable snapshots"}
     gap_days = sum(1 for d in gated if d.get("carried_forward"))
     known = [d.get("book_known") for d in gated]
 
@@ -824,7 +824,7 @@ def build_attention_capital(snap, intent=None, max_examples=10):
             "window": [days[0], days[-1]],
             "window_days": len(days),
             "attention_events": sum(attention.values()),
-            "note": (f"During BM453, stock_total peaked at {max_stock:,.0f}, but holding details remained empty throughout, so the specific instruments could not be identified and no attention-capital cross-conclusion is output (missing data is not treated as an empty position)."),
+            "note": (f"During account_snapshots, stock_total peaked at {max_stock:,.0f}, but holding details remained empty throughout, so the specific instruments could not be identified and no attention-capital cross-conclusion is output (missing data is not treated as an empty position)."),
         }
     held_now = set(latest)
 

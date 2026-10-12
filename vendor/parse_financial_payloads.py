@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Parse archived BM452/BM453/BM433 payloads into normalised tables.
+"""Parse archived trade_executions/account_snapshots/behavior_events payloads into normalised tables.
 
-BM452 payload is a `|`-separated list of `#`-separated order records. The field
+trade_executions payload is a `|`-separated list of `#`-separated order records. The field
 layout below was verified in the sibling repo on 359 rows; this script re-verifies
 it on the full corpus and FAILS LOUDLY if the layout does not hold, because a
 silent mis-index produces fabricated timestamps.
 
-CRITICAL: BM452 carries no usable trade date column. The trailing `settlement
+CRITICAL: trade_executions carries no usable trade date column. The trailing `settlement
 date` (bit 23) is the label-extraction bag date, and using it makes every
 time-window metric measure the extraction batch instead of the user. The true
 execution time is bit 18 (epoch ms). We keep both, decode from bit 18, and report
 the disagreement rate as evidence.
 
 Outputs
-  data/parsed/bm452_trades.jsonl   one decoded order per line
-  data/parsed/bm453_daily.jsonl    one account-day per line
-  data/parsed/bm433_events.jsonl   normalised behaviour events (Beijing -> ET)
+  data/parsed/trade_executions.jsonl   one decoded order per line
+  data/parsed/account_snapshots.jsonl    one account-day per line
+  data/parsed/behavior_events.jsonl   normalised behaviour events (Beijing -> ET)
   data/parsed/user_presence.json   per-user stream presence + volumes
-  data/bm.db                       sqlite mirror
+  data/financial.db                       sqlite mirror
 """
 from __future__ import annotations
 
@@ -33,14 +33,14 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-RAW = DATA / "raw_bm"
+RAW = DATA / "raw_records"
 PARSED = DATA / "parsed"
 
 BEIJING = ZoneInfo("Asia/Shanghai")
 NEW_YORK = ZoneInfo("America/New_York")
-CODES = ("BM433", "BM452", "BM453")
+CODES = ("behavior_events", "trade_executions", "account_snapshots")
 
-# --- BM452 field layout (index -> meaning) -----------------------------------
+# --- trade_executions field layout (index -> meaning) -----------------------------------
 F_ORDER_ID, F_BROKER, F_USER, F_ACCOUNT = 0, 1, 2, 3
 F_INSTRUMENT_UID, F_TICKER, F_INSTRUMENT_NAME = 4, 5, 6
 F_ORDER_QTY, F_CANCELLED_QTY, F_EXECUTED_QTY, F_EXECUTED_AMOUNT = 10, 11, 12, 13
@@ -54,7 +54,7 @@ MIN_BITS = 24
 SIDE_MAP = {"1001": "buy", "1002": "sell"}
 EPOCH_MIN, EPOCH_MAX = 1_600_000_000.0, 1_900_000_000.0  # 2020-09 .. 2030-03
 
-# --- BM433 text layout -------------------------------------------------------
+# --- behavior_events text layout -------------------------------------------------------
 DATE_MARKER = re.compile(r"\*{1,2}(\d{4}-\d{2}-\d{2})")
 ACTION_MARKER = re.compile(r"\*(\d{2}:\d{2})\s*(.*?)(?=\*\d{2}:\d{2}\s|$)", re.S)
 TIMEFRAME_SWITCH = re.compile(r"^switch to (.+?) timeframe$", re.I)
@@ -93,8 +93,8 @@ def trading_date(d):
     return d.replace(tzinfo=timezone.utc).astimezone(NEW_YORK).date().isoformat()
 
 
-# --------------------------- BM452 ------------------------------------------
-def parse_bm452(raw: str, stats: dict):
+# --------------------------- trade_executions ------------------------------------------
+def parse_trade_executions(raw: str, stats: dict):
     if not raw:
         return []
     out = []
@@ -154,8 +154,8 @@ def parse_bm452(raw: str, stats: dict):
     return out
 
 
-# --------------------------- BM453 ------------------------------------------
-def parse_bm453(raw: str):
+# --------------------------- account_snapshots ------------------------------------------
+def parse_account_snapshots(raw: str):
     if not raw:
         return []
     try:
@@ -194,9 +194,9 @@ def parse_bm453(raw: str):
     return rows
 
 
-# --------------------------- BM433 ------------------------------------------
-def parse_bm433(raw: str):
-    """BM433 text -> events. Source stamps are Beijing time, converted to ET."""
+# --------------------------- behavior_events ------------------------------------------
+def parse_behavior_events(raw: str):
+    """behavior_events text -> events. Source stamps are Beijing time, converted to ET."""
     if not raw or not isinstance(raw, str):
         return []
     events = []
@@ -240,9 +240,9 @@ def main() -> int:
             print(f"  SKIP {path.name}: {exc}")
             continue
         uid = str(doc.get("user_id") or path.stem)
-        trades = parse_bm452(doc.get("BM452") or "", stats)
-        daily = parse_bm453(doc.get("BM453") or "")
-        events = parse_bm433(doc.get("BM433") or "")
+        trades = parse_trade_executions(doc.get("trade_executions") or "", stats)
+        daily = parse_account_snapshots(doc.get("account_snapshots") or "")
+        events = parse_behavior_events(doc.get("behavior_events") or "")
         for t in trades:
             t["user_id"] = uid
             all_trades.append(t)
@@ -255,7 +255,7 @@ def main() -> int:
 
         trade_days = {t["executed_date"] for t in trades if t["executed_date"]}
         presence[uid] = {
-            "BM433": len(events) > 0, "BM452": len(trades) > 0, "BM453": len(daily) > 0,
+            "behavior_events": len(events) > 0, "trade_executions": len(trades) > 0, "account_snapshots": len(daily) > 0,
             "n_events": len(events), "n_trades": len(trades), "n_days": len(daily),
             "n_holdings_last_day": next((d["n_holdings"] for d in reversed(daily)), 0),
             "n_trade_days": len(trade_days),
@@ -273,12 +273,12 @@ def main() -> int:
                 fh.write(json.dumps(r, ensure_ascii=False) + "\n")
         return p
 
-    dump("bm452_trades.jsonl", all_trades)
-    dump("bm453_daily.jsonl", all_daily)
-    dump("bm433_events.jsonl", all_events)
+    dump("trade_executions.jsonl", all_trades)
+    dump("account_snapshots.jsonl", all_daily)
+    dump("behavior_events.jsonl", all_events)
 
     # ---- sqlite mirror -----------------------------------------------------
-    db = DATA / "bm.db"
+    db = DATA / "financial.db"
     if db.exists():
         db.unlink()
     con = sqlite3.connect(db)
@@ -288,37 +288,37 @@ def main() -> int:
     -- carried 100 distinct rows (partial fills / repeated orders). A composite
     -- PK silently deleted them, which is exactly the kind of lossy dedup that
     -- corrupts trade counts.
-    create table bm452_trades(
+    create table trade_executions(
       row_pk integer primary key autoincrement,
       user_id text, order_id text, executed_at text, executed_date text,
       ticker text, side text, side_code text, order_qty real, executed_qty real,
       executed_amount real, execution_state text, bag_date text);
-    create table bm453_daily(
+    create table account_snapshots(
       user_id text, snapshot_date text, asset_total real, stock_total real,
       money_remain real, stock_profit_daily real, n_holdings integer,
       holdings_json text, primary key(user_id, snapshot_date));
-    create table bm433_events(
+    create table behavior_events(
       user_id text, timestamp_et text, event_date text, event_time_et text,
       action_text text, timeframe text);
-    create index ix_trades on bm452_trades(user_id, executed_date);
-    create index ix_trades_oid on bm452_trades(user_id, order_id);
-    create index ix_daily  on bm453_daily(user_id, snapshot_date);
-    create index ix_events on bm433_events(user_id, timestamp_et);
+    create index ix_trades on trade_executions(user_id, executed_date);
+    create index ix_trades_oid on trade_executions(user_id, order_id);
+    create index ix_daily  on account_snapshots(user_id, snapshot_date);
+    create index ix_events on behavior_events(user_id, timestamp_et);
     """)
     con.executemany(
-        "insert into bm452_trades(user_id,order_id,executed_at,executed_date,ticker,"
+        "insert into trade_executions(user_id,order_id,executed_at,executed_date,ticker,"
         "side,side_code,order_qty,executed_qty,executed_amount,execution_state,bag_date)"
         " values(?,?,?,?,?,?,?,?,?,?,?,?)",
         [(t["user_id"], t["order_id"], t["executed_at"], t["executed_date"], t["ticker"],
           t["side"], t["side_code"], t["order_qty"], t["executed_qty"],
           t["executed_amount"], t["execution_state"], t["bag_date"]) for t in all_trades])
     con.executemany(
-        "insert or replace into bm453_daily values(?,?,?,?,?,?,?,?)",
+        "insert or replace into account_snapshots values(?,?,?,?,?,?,?,?)",
         [(d["user_id"], d["snapshot_date"], d["asset_total"], d["stock_total"],
           d["money_remain"], d["stock_profit_daily"], d["n_holdings"],
           json.dumps(d["holdings"], ensure_ascii=False)) for d in all_daily])
     con.executemany(
-        "insert into bm433_events values(?,?,?,?,?,?)",
+        "insert into behavior_events values(?,?,?,?,?,?)",
         [(e["user_id"], e["timestamp_et"], e["event_date"], e["event_time_et"],
           e["action_text"], e["timeframe"]) for e in all_events])
     con.commit()
@@ -334,7 +334,7 @@ def main() -> int:
     }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     # ---- report ------------------------------------------------------------
-    print(f"BM452 orders parsed      : {stats['records_total']:,} "
+    print(f"trade_executions orders parsed      : {stats['records_total']:,} "
           f"(short/dropped {stats['records_dropped_short']})")
     print(f"  whitespace-normalised  : {stats['records_whitespace_normalised']:,} "
           f"({100*stats['records_whitespace_normalised']/max(stats['records_total'],1):.1f}%)")
@@ -344,13 +344,13 @@ def main() -> int:
     mv = stats["bag_vs_exec_mismatch"]; cmp_ = stats["bag_vs_exec_compared"]
     print(f"  bag-date != exec-date  : {mv:,}/{cmp_:,} "
           f"({100*mv/max(cmp_,1):.1f}%)  <- why bag_date must never be used as trade_date")
-    print(f"BM453 account-days       : {len(all_daily):,}")
-    print(f"BM433 events             : {len(all_events):,}")
+    print(f"account_snapshots account-days       : {len(all_daily):,}")
+    print(f"behavior_events events             : {len(all_events):,}")
     print()
     for c in CODES:
         print(f"  {c}: {sum(1 for p in presence.values() if p[c])} users")
     print(f"  ALL THREE: {len(both)} users")
-    print(f"\nwrote {PARSED}/*.jsonl, data/bm.db, data/parsed/user_presence.json")
+    print(f"\nwrote {PARSED}/*.jsonl, data/financial.db, data/parsed/user_presence.json")
     return 0
 
 

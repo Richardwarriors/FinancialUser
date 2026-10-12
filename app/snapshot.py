@@ -17,10 +17,10 @@ def _now():
 class UserFinancialSnapshot:
     user_id: str
     as_of: str = field(default_factory=_now)
-    behaviors_6m: list = field(default_factory=list)     # BM433
-    trades_6m: list = field(default_factory=list)        # BM452
-    account_daily: list = field(default_factory=list)    # BM453 (replaces BM451 + BM426)
-    conversations_1m: list = field(default_factory=list)  # BM428
+    behaviors_6m: list = field(default_factory=list)     # behavior_events
+    trades_6m: list = field(default_factory=list)        # trade_executions
+    account_daily: list = field(default_factory=list)    # account_snapshots (replaces weekly_holdings + equity_summary)
+    conversations_1m: list = field(default_factory=list)  # conversations
     # NOTE `users.base_profile_summary` is deliberately NOT carried into the
     # snapshot. It is a demographic self-description (国籍 94/157, 语言 96/157,
     # 年龄 39/157 users, often literally "Chinese national"), rewritten into first

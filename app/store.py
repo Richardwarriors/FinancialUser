@@ -1,7 +1,7 @@
 """Profile store abstraction.
 
 v1 persists to SQLite (profile_versions table, already in use).
-A MongoBMStore / remote implementation can replace this behind the same
+A MongoProfileStore / remote implementation can replace this behind the same
 interface once the MongoDB decision lands.
 """
 import json

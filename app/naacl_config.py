@@ -12,7 +12,7 @@ What this fork changes relative to the production harness
    time, so this is sufficient rather than merely convenient.
 
 2. **Five dimensions instead of ten.** The tree keeps only the L1 blocks that
-   the BM433/BM452/BM453 streams can actually support:
+   the behavior_events/trade_executions/account_snapshots streams can actually support:
 
        risk_preference          what risk the user takes (revealed, not stated)
        emotion_and_psychology   disposition effect, biases, behavioural signals
@@ -22,10 +22,10 @@ What this fork changes relative to the production harness
 
    Dropped, and why:
 
-       user_life_cycle          needs age / career / life stage — not in BM data
-       background               needs jurisdiction, tax status, income — not in BM data
-       goals                    needs a questionnaire — not in BM data
-       constraints              needs liquidity needs, insurance, debt — not in BM data
+       user_life_cycle          needs age / career / life stage — not in financial data data
+       background               needs jurisdiction, tax status, income — not in financial data data
+       goals                    needs a questionnaire — not in financial data data
+       constraints              needs liquidity needs, insurance, debt — not in financial data data
        personalization_and_rules  service preferences, not an investment trait
 
    Dropping these is not a loss of information: 20 of the 60 KYC features are
@@ -43,7 +43,7 @@ from __future__ import annotations
 
 # --------------------------------------------------------------------------
 # Time boundary. Must match the cutoff passed to `load_naacl_db.py`.
-# 2026-08-01 is the 20th day of BM452's global window (2026-07-13 onwards), so
+# 2026-08-01 is the 20th day of trade_executions's global window (2026-07-13 onwards), so
 # the profile is built from the first 20 days and prediction starts after them.
 # --------------------------------------------------------------------------
 PROFILE_CUTOFF = "2026-08-01"
@@ -74,7 +74,7 @@ KEEP_SUMMARY_GROUPS = [
     ["investment_logic", "app_behavior_analysis", "investor_assessment"],
 ]
 
-# L2 labels that are structurally unanswerable from BM data. They stay in the
+# L2 labels that are structurally unanswerable from financial data data. They stay in the
 # definition (so the gap is visible and countable) but are excluded from the
 # summary prompt, matching the production rule that a gap must never be handed
 # to a model — describing what is missing is how an unknown becomes a finding.

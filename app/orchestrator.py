@@ -31,7 +31,7 @@ MODE_BUDGET = {
     "standard": 2,
     "deep": 5,
 }
-MAX_AGENT_CALLS = int(os.environ.get("BM_MAX_AGENT_CALLS", "2"))
+MAX_AGENT_CALLS = int(os.environ.get("PROFILE_MAX_AGENT_CALLS", "2"))
 
 
 class Plan(BaseModel):
@@ -48,7 +48,7 @@ def _dim_strength(ev, dim):
     cv, s = ev.get("conversation", {}), ev.get("stated", {})
     bi = ev.get("behavior_intent", {})
     intent = 1 if bi.get("available") else 0
-    # structured BM433 research evidence is worth more than raw event volume
+    # structured behavior_events research evidence is worth more than raw event volume
     deep = 1 if (bi.get("research_depth", {}) or {}).get("research_grade_session_share", 0) \
         and bi["research_depth"]["research_grade_session_share"] >= 0.3 else 0
     backing = {

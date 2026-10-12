@@ -11,7 +11,7 @@ answer different questions and disagree often:
     position_action    start_new_position | add_to_existing | trim_position |
                        exit_position | hold        change in the book itself
 
-Both labels are observed from BM452 executions and BM453 boundary books, so they
+Both labels are observed from trade_executions executions and account_snapshots boundary books, so they
 are facts rather than judgements.
 
 Why this replaces `predict_rolling.py`

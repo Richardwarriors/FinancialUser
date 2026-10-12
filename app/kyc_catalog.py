@@ -3,7 +3,7 @@
 This module is deliberately the *only* place that decides what a feature means
 and whether the data can support it. Three coverage classes:
 
-  deterministic  computable from the BM streams alone (no LLM, auditable)
+  deterministic  computable from the financial data streams alone (no LLM, auditable)
   llm            a judgement call over real evidence (must cite evidence refs)
   unavailable    requires data we do not have (KYC questionnaire, account
                  opening data, income/debt, insurance, jurisdiction)
@@ -28,10 +28,10 @@ from .taxonomy import SECTOR_MAP, ticker_info
 D, L, P, X = "deterministic", "llm", "proxy", "unavailable"
 
 # streams that exist in UserFinancialSnapshot
-BM433 = "BM433"      # in-app behaviour events
-BM452 = "BM452"      # executed trades
-BM453 = "BM453"      # daily account snapshot (assets + holdings)
-BM428 = "BM428"      # conversation titles
+behavior_events = "behavior_events"      # in-app behaviour events
+trade_executions = "trade_executions"      # executed trades
+account_snapshots = "account_snapshots"      # daily account snapshot (assets + holdings)
+conversations = "conversations"      # conversation titles
 STATED = "stated"    # users.base_profile_summary (self-report)
 
 # key -> (label_zh, coverage, streams, data_needed[])
@@ -51,11 +51,11 @@ CATALOG = {
             "funding_plan": {
                 "label": "Capital plan",
                 "features": {
-                    "planned_contribution": ("Planned investment", P, [BM453],
+                    "planned_contribution": ("Planned investment", P, [account_snapshots],
                                             ["KYC questionnaire: regular investment plan; currently the observed deposit cadence"]),
-                    "planned_withdrawal": ("Planned withdrawal", P, [BM453],
+                    "planned_withdrawal": ("Planned withdrawal", P, [account_snapshots],
                                           ["KYC questionnaire: withdrawal arrangements; currently the observed withdrawal cadence"]),
-                    "investment_horizon_framework": ("Investment horizon framework", L, [BM453, BM433, STATED],
+                    "investment_horizon_framework": ("Investment horizon framework", L, [account_snapshots, behavior_events, STATED],
                                                      ["Account holding period", "Position turnover", "Chart-viewing period distribution"]),
                 },
             },
@@ -68,7 +68,7 @@ CATALOG = {
             "liquidity": {
                 "label": "Liquidity",
                 "features": {
-                    "minimum_liquidity_reserve": ("Lowest liquidity reserve", L, [BM453],
+                    "minimum_liquidity_reserve": ("Lowest liquidity reserve", L, [account_snapshots],
                                                   ["Cash proportion is an observation proxy, not a user-declared reserve requirement"]),
                 },
             },
@@ -81,16 +81,16 @@ CATALOG = {
                 "label": "Risk willingness",
                 "features": {
                     "confirmed_risk_willingness": ("Confirmed risk willingness", X, [], ["KYC questionnaire or risk assessment: user confirmation required"]),
-                    "maximum_uncomfortable_drawdown": ("Maximum discomfort drawdown", L, [BM453, BM452],
+                    "maximum_uncomfortable_drawdown": ("Maximum discomfort drawdown", L, [account_snapshots, trade_executions],
                                                        ["Drawdown actually endured is indirect evidence, not a user-stated threshold"]),
                 },
             },
             "capacity": {
                 "label": "Risk tolerance",
                 "features": {
-                    "maximum_affordable_loss": ("Maximum tolerable loss", P, [BM453, BM452],
+                    "maximum_affordable_loss": ("Maximum tolerable loss", P, [account_snapshots, trade_executions],
                                                 ["KYC questionnaire: tolerable loss amount; currently proxied by the lower bound of the actually experienced drawdown range"]),
-                    "risk_capacity": ("Risk tolerance", L, [BM453, BM433],
+                    "risk_capacity": ("Risk tolerance", L, [account_snapshots, behavior_events],
                                       ["Investable asset scale and time horizon are proxy variables, not suitability conclusions"]),
                 },
             },
@@ -103,7 +103,7 @@ CATALOG = {
             "scope": {
                 "label": "Applicable scope",
                 "features": {
-                    "account_or_goal_specific_risk_level": ("Account/goal-level risk level", P, [BM453],
+                    "account_or_goal_specific_risk_level": ("Account/goal-level risk level", P, [account_snapshots],
                                                             ["Account-level data is not split by target; currently an applicability scope statement"]),
                 },
             },
@@ -124,40 +124,40 @@ CATALOG = {
                 "label": "Account",
                 "features": {
                     "account_types_and_tax_wrappers": ("Account type and tax structure", X, [], ["Account opening information (taxable/retirement accounts, etc.)"]),
-                    "account_balances_and_cash": ("Account balance and cash", D, [BM453], []),
+                    "account_balances_and_cash": ("Account balance and cash", D, [account_snapshots], []),
                 },
             },
             "allocation": {
                 "label": "Asset allocation",
                 "features": {
-                    "asset_class_allocation": ("Asset category allocation", D, [BM453], []),
-                    "strategy_bucket_structure": ("Strategy bucket structure", D, [BM453], []),
+                    "asset_class_allocation": ("Asset category allocation", D, [account_snapshots], []),
+                    "strategy_bucket_structure": ("Strategy bucket structure", D, [account_snapshots], []),
                 },
             },
             "concentration": {
                 "label": "Concentration",
                 "features": {
-                    "largest_position_concentration": ("Maximum position concentration", D, [BM453], []),
-                    "sector_concentration": ("Industry concentration", D, [BM453], []),
-                    "employer_stock_concentration": ("Employer stock concentration", P, [BM453],
+                    "largest_position_concentration": ("Maximum position concentration", D, [account_snapshots], []),
+                    "sector_concentration": ("Industry concentration", D, [account_snapshots], []),
+                    "employer_stock_concentration": ("Employer stock concentration", P, [account_snapshots],
                                                      ["No employer information; currently proxied by the equivalent single-holding concentration risk pattern"]),
                 },
             },
             "exposure": {
                 "label": "Exposure",
                 "features": {
-                    "geographic_and_currency_exposure": ("Geographic and currency exposure", P, [BM453],
+                    "geographic_and_currency_exposure": ("Geographic and currency exposure", P, [account_snapshots],
                                                          ["No currency data; currently proxied by the instrument issuer's place of registration, with unlisted instruments counted as U.S. stocks"]),
-                    "illiquid_asset_exposure": ("Illiquid asset exposure", P, [BM453],
+                    "illiquid_asset_exposure": ("Illiquid asset exposure", P, [account_snapshots],
                                                 ["Can only state that no such assets are within the visible scope; assets outside the platform are not visible"]),
-                    "leverage_and_derivatives_exposure": ("Leverage and derivatives exposure", D, [BM453, BM452, BM433], []),
+                    "leverage_and_derivatives_exposure": ("Leverage and derivatives exposure", D, [account_snapshots, trade_executions, behavior_events], []),
                 },
             },
             "cashflow_and_experience": {
                 "label": "Cash flow and experience",
                 "features": {
-                    "contribution_and_withdrawal_pattern": ("Deposit and withdrawal pattern", D, [BM453], []),
-                    "drawdown_experience": ("Drawdown experience", D, [BM453], []),
+                    "contribution_and_withdrawal_pattern": ("Deposit and withdrawal pattern", D, [account_snapshots], []),
+                    "drawdown_experience": ("Drawdown experience", D, [account_snapshots], []),
                 },
             },
         },
@@ -168,28 +168,28 @@ CATALOG = {
             "style": {
                 "label": "Style",
                 "features": {
-                    "preferred_investment_style": ("Preferred investment style", L, [BM433, BM452, BM453, STATED], []),
+                    "preferred_investment_style": ("Preferred investment style", L, [behavior_events, trade_executions, account_snapshots, STATED], []),
                 },
             },
             "fundamental_research": {
                 "label": "Research depth",
                 "features": {
-                    "fundamental_analysis_depth": ("Depth of fundamental analysis", L, [BM433], []),
-                    "investment_domain_expertise": ("Professionalism in investment fields", L, [BM433, BM428], []),
-                    "thesis_evidence_requirement": ("Evidentiary requirements", L, [BM433], ["The relationship from research to order placement is indirectly inferred"]),
-                    "valuation_sensitivity": ("Valuation sensitivity", L, [BM433], ["Can only be inferred indirectly from viewing valuation-related pages"]),
+                    "fundamental_analysis_depth": ("Depth of fundamental analysis", L, [behavior_events], []),
+                    "investment_domain_expertise": ("Professionalism in investment fields", L, [behavior_events, conversations], []),
+                    "thesis_evidence_requirement": ("Evidentiary requirements", L, [behavior_events], ["The relationship from research to order placement is indirectly inferred"]),
+                    "valuation_sensitivity": ("Valuation sensitivity", L, [behavior_events], ["Can only be inferred indirectly from viewing valuation-related pages"]),
                 },
             },
             "portfolio_belief": {
                 "label": "Portfolio conviction",
                 "features": {
-                    "diversification_belief": ("Diversification belief", L, [BM433, BM453], []),
+                    "diversification_belief": ("Diversification belief", L, [behavior_events, account_snapshots], []),
                 },
             },
             "resource": {
                 "label": "Invested resources",
                 "features": {
-                    "time_and_attention_budget": ("Time and attention allocation", L, [BM433], []),
+                    "time_and_attention_budget": ("Time and attention allocation", L, [behavior_events], []),
                 },
             },
         },
@@ -200,23 +200,23 @@ CATALOG = {
             "authority": {
                 "label": "Decision authorization",
                 "features": {
-                    "advisor_autonomy_preference": ("Financial advisor autonomy preference", L, [BM428, BM433], ["No direct inquiry data"]),
+                    "advisor_autonomy_preference": ("Financial advisor autonomy preference", L, [conversations, behavior_events], ["No direct inquiry data"]),
                 },
             },
             "copy": {
                 "label": "Communication preferences",
                 "features": {
-                    "advisory_language_preference": ("Language preference", L, [BM428], []),
-                    "explanation_depth_preference": ("Preference for explanation depth", L, [BM428], []),
-                    "communication_tone_preference": ("Preferred communication tone", L, [BM428], ["Title samples are usually too few"]),
-                    "output_format_preference": ("Output format preference", L, [BM428], []),
+                    "advisory_language_preference": ("Language preference", L, [conversations], []),
+                    "explanation_depth_preference": ("Preference for explanation depth", L, [conversations], []),
+                    "communication_tone_preference": ("Preferred communication tone", L, [conversations], ["Title samples are usually too few"]),
+                    "output_format_preference": ("Output format preference", L, [conversations], []),
                 },
             },
             "service_rhythm": {
                 "label": "Service cadence",
                 "features": {
                     "notification_trigger_preferences": ("Notification trigger preferences", X, [], ["No notification settings data"]),
-                    "portfolio_review_cadence": ("Portfolio review frequency", L, [BM433, BM453], ["Access cadence is a proxy variable"]),
+                    "portfolio_review_cadence": ("Portfolio review frequency", L, [behavior_events, account_snapshots], ["Access cadence is a proxy variable"]),
                 },
             },
         },
@@ -227,17 +227,17 @@ CATALOG = {
             "assets": {
                 "label": "Assets",
                 "features": {
-                    "investable_assets_band": ("Investable asset range", D, [BM453], []),
-                    "external_asset_coverage": ("External asset coverage", P, [BM453],
+                    "investable_assets_band": ("Investable asset range", D, [account_snapshots], []),
+                    "external_asset_coverage": ("External asset coverage", P, [account_snapshots],
                                                 ["Can only state the visible scope; assets outside the platform are not visible"]),
                 },
             },
             "income": {
                 "label": "Income",
                 "features": {
-                    "annual_income_band": ("Annual income range", P, [BM453],
+                    "annual_income_band": ("Annual income range", P, [account_snapshots],
                                            ["KYC questionnaire: income; currently proxied by the lower bound of disposable surplus, not an income conclusion"]),
-                    "income_stability": ("Income stability", P, [BM453],
+                    "income_stability": ("Income stability", P, [account_snapshots],
                                          ["KYC questionnaire: occupation and income; currently using deposit regularity as a weak proxy"]),
                     "expected_income_change": ("Expected income change", X, [], ["KYC questionnaire: career planning"]),
                 },
@@ -246,14 +246,14 @@ CATALOG = {
                 "label": "Cash flow",
                 "features": {
                     "essential_expense_band": ("Necessary expense range", X, [], ["KYC questionnaire: expenses"]),
-                    "emergency_fund_runway": ("Number of months emergency funds can support", P, [BM453],
+                    "emergency_fund_runway": ("Number of months emergency funds can support", P, [account_snapshots],
                                               ["KYC questionnaire: expenses; currently estimated at the lower bound of account cash ÷ observed net outflows"]),
                 },
             },
             "debt": {
                 "label": "Liabilities",
                 "features": {
-                    "total_debt_band": ("Total liabilities range", P, [BM453],
+                    "total_debt_band": ("Total liabilities range", P, [account_snapshots],
                                         ["KYC questionnaire: liabilities; currently can only detect financing liabilities within the account"]),
                     "debt_service_ratio": ("Debt service ratio", X, [], ["KYC questionnaire: liabilities and repayments"]),
                 },
@@ -276,14 +276,14 @@ CATALOG = {
                 "features": {
                     "employment_status": ("Employment status", X, [], ["KYC questionnaire: occupational information"]),
                     "occupation_type": ("Occupation Type", X, [], ["KYC questionnaire: occupational information"]),
-                    "occupation_industry": ("Industry", L, [STATED, BM428, BM433],
+                    "occupation_industry": ("Industry", L, [STATED, conversations, behavior_events],
                                             ["Can only make a determination when the industry is explicitly mentioned in the user's self-report or dialogue"]),
                 },
             },
             "lifecycle": {
                 "label": "Lifecycle",
                 "features": {
-                    "wealth_lifecycle_stage": ("Wealth lifecycle stage", L, [BM453, BM433, STATED], []),
+                    "wealth_lifecycle_stage": ("Wealth lifecycle stage", L, [account_snapshots, behavior_events, STATED], []),
                 },
             },
         },
