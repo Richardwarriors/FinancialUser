@@ -1,0 +1,32 @@
+# Credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+# All private inputs, derived artifacts and logs
+data/
+results/
+outputs/
+logs/
+backups/
+*_logs/
+*.db
+*.db-*
+*.sqlite*
+*.json
+*.jsonl
+*.csv
+*.tsv
+*.parquet
+*.zip
+*.html
+*.pdf
+# Runtime files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
