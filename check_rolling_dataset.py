@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance check for the NAACL27 rolling-prediction dataset.
+"""Acceptance check for the rolling-prediction dataset.
 
 Run this before treating the build as finished.  It answers the questions the
 paper has to answer about its own data, and it fails loudly rather than printing
@@ -39,7 +39,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from app.english_output import contains_cjk                          # noqa: E402
-from app.naacl_config import PROFILE_CUTOFF                          # noqa: E402
+from app.rolling_config import PROFILE_CUTOFF                          # noqa: E402
 from app.rolling_prompt import build_prompt_view                     # noqa: E402
 from app.rolling_schema import (PROFILE_DIMENSIONS,                  # noqa: E402
                                 PUBLIC_PROFILE_SCHEMA_VERSION,

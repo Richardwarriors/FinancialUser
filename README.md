@@ -25,7 +25,7 @@ The lock file records the dependency versions used for offline validation (Pytho
 
 ## Prediction protocol
 
-The fixed profile boundary (`T0`) is `2026-08-01` in `app/naacl_config.py`. Each sample uses an expanding-history profile, the last seven US trading sessions and market context available at the previous session's 16:00 America/New_York cutoff. The first target is `2026-08-12`; samples advance one trading session at a time. The default horizon is 40 prediction sessions ending by `2026-10-07`. Holidays and weekends are excluded.
+The fixed profile boundary (`T0`) is `2026-08-01` in `app/rolling_config.py`. Each sample uses an expanding-history profile, the last seven US trading sessions and market context available at the previous session's 16:00 America/New_York cutoff. The first target is `2026-08-12`; samples advance one trading session at a time. The default horizon is 40 prediction sessions ending by `2026-10-07`. Holidays and weekends are excluded.
 
 The primary task first predicts `trade` / `no_trade`, then `buy_only` / `sell_only` / `buy_and_sell` on trade days, and separately ranks up to five buy and sell tickers. Unobserved outcomes remain unknown and are excluded from scoring. No executions prove `no_trade` only when known boundary holdings books are unchanged. Forecast fields and target-side evidence are excluded from model prompts. Legacy cash-direction and position-action labels remain for audit compatibility.
 
@@ -39,7 +39,7 @@ For the included loader, place one numeric-named JSON file per anonymous user un
 - `trade_executions`: `|`-separated orders with `#`-separated fields; true execution time comes from field 18 as epoch milliseconds, not the extraction date.
 - `account_snapshots`: daily account/holdings snapshots.
 
-The exact payload decoders are `vendor/parse_financial_payloads.py`. For another source format, implement an adapter producing the SQLite tables in `load_naacl_db.py:SCHEMA`, or adapt `app/datasource.py`. Keep execution timestamps in the documented naive UTC representation and snapshot dates in the source session convention.
+The exact payload decoders are `vendor/parse_financial_payloads.py`. For another source format, implement an adapter producing the SQLite tables in `load_observations_db.py:SCHEMA`, or adapt `app/datasource.py`. Keep execution timestamps in the documented naive UTC representation and snapshot dates in the source session convention.
 
 The payload field names, SQLite table names and paths are semantic names throughout the code. Existing databases and input files must be converted to the schema shown above or rebuilt with this loader; old identifiers are not accepted as aliases. Profile settings use the `PROFILE_` environment-variable prefix (for example, `PROFILE_EVIDENCE_CACHE` and `PROFILE_SOURCE_KIND`).
 
@@ -47,12 +47,12 @@ Create `data/users.txt` containing one anonymous user ID per line. Create `data/
 
 ```bash
 # Physically truncated seed database. This command recreates the specified output.
-python load_naacl_db.py --raw data/raw_records --out data/observations_t0.db \
+python load_observations_db.py --raw data/raw_records --out data/observations_t0.db \
   --cutoff 2026-08-01 --users-file data/users.txt
 
 # Full observation database, through the last date in your source extraction.
 # Choose a different output path so that T0 remains truncated.
-python load_naacl_db.py --raw data/raw_records --out data/observations_full.db \
+python load_observations_db.py --raw data/raw_records --out data/observations_full.db \
   --cutoff 2026-10-07 --users-file data/users.txt
 ```
 
@@ -99,21 +99,21 @@ python audit_rolling_leakage.py --samples-dir data/rolling_prediction/samples
 
 If your source is incomplete or ends earlier, shorten `--end` and declare the actual known-complete date. Omitting `--execution-coverage-through` preserves unknown labels for unverified inactivity. The audit's independent label recheck reads `data/observations_full.db` by default.
 
-The builder refreshes changed profile dimensions and writes immutable daily profiles plus `samples/<user_id>/<prediction_date>.json`. It can resume existing profiles and samples at the current schema. Samples at older schemas must be rebuilt; do not bypass schema checks to mix experiments.
+The builder refreshes changed profile dimensions and writes immutable daily profiles plus `samples/<user_id>/<prediction_date>.json`. It can resume existing profiles and samples at the current schema. Schema identifiers use the `financial_` namespace. Seed profiles and rolling samples with older identifiers must be regenerated with the current exporter and builder; do not bypass schema checks to mix experiments.
 
 ## 4. Run prediction and evaluation
 
 ```bash
 # Validate prompt projections and report token sizes without model calls.
-python predict_rolling_NAACL27.py --samples-dir data/rolling_prediction/samples \
+python predict_rolling.py --samples-dir data/rolling_prediction/samples \
   --all --dry-run
 
 # Start with a small per-user run; use a fresh output directory for this smoke run.
-python predict_rolling_NAACL27.py --samples-dir data/rolling_prediction/samples \
+python predict_rolling.py --samples-dir data/rolling_prediction/samples \
   --users-file data/users.txt --limit 1 --model "$LUNA_MODEL" --out outputs/smoke
 
 # Full experiment; interrupted predictions can resume from per-user outputs.
-python predict_rolling_NAACL27.py --samples-dir data/rolling_prediction/samples \
+python predict_rolling.py --samples-dir data/rolling_prediction/samples \
   --all --model "$LUNA_MODEL" --out outputs/models/model_a --resume
 
 # Rebuild the complete summary if a run was sharded across processes.

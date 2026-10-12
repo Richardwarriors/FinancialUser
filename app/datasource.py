@@ -6,7 +6,7 @@ Streams:
     account_snapshots -> get_account_daily
     conversations     -> get_conversations
 
-SQLiteDataSource reads normalized local records prepared by load_naacl_db.py.
+SQLiteDataSource reads normalized local records prepared by load_observations_db.py.
 HiveDataSource reserves the same interface for a future Hive adapter.
 Agents consume the interface independently of the underlying connector.
 """

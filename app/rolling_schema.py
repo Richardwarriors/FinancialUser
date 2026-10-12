@@ -1,16 +1,16 @@
 """Stable JSON contracts shared by profile export and rolling prediction."""
 from __future__ import annotations
 
-PROFILE_SCHEMA_VERSION = "naacl27_point_in_time_profile_en_v2"
+PROFILE_SCHEMA_VERSION = "financial_point_in_time_profile_en_v2"
 # The published profile drops the evidence/presentation audit layers: the paper
 # reports conclusions, not stored evidence. `PUBLIC_PROFILE_SCHEMA_VERSION`
 # marks that narrower contract so a full internal profile can never be
 # mistaken for a published one.
-PUBLIC_PROFILE_SCHEMA_VERSION = "naacl27_public_profile_en_v3"
+PUBLIC_PROFILE_SCHEMA_VERSION = "financial_public_profile_en_v3"
 PROFILE_DIMENSIONS = ("risk_preference", "emotion_and_psychology",
                       "investment_logic", "app_behavior_analysis",
                       "investor_assessment")
-SAMPLE_SCHEMA_VERSION = "naacl27_rolling_prediction_en_v7"
+SAMPLE_SCHEMA_VERSION = "financial_rolling_prediction_en_v7"
 
 # Trait fields the published profile must not carry.  The harness runs a rule
 # engine that forecasts the next capital action, and it writes the answer into

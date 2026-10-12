@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """Four-stage rolling prediction under an information ablation.
 
-Why this is a separate script
------------------------------
-`predict_rolling_NAACL27.py` produced `final_v7` and is left byte-identical, so
-those five runs stay reproducible.  This script changes the answer contract (it
-adds a fourth stage) and therefore changes the prompt, which means the existing
-runs cannot serve as the control for stage 4: the `full` arm has to be re-run
-here so that control and ablation differ ONLY in the withheld block.
+This script extends the hierarchical predictor with a fourth position-action
+stage. Run the full-information arm here as the control so the control and
+ablated arms share the same output contract and differ only in withheld evidence.
 
 The four stages
 ---------------
@@ -48,7 +44,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import predict_rolling_NAACL27 as base                               # noqa: E402
+import predict_rolling as base                               # noqa: E402
 from app.rolling_ablation import ARMS, ABLATIONS, apply_ablation     # noqa: E402
 from app.rolling_labels import POSITION_ACTIONS                      # noqa: E402
 from app.rolling_prompt import build_prompt_view                     # noqa: E402

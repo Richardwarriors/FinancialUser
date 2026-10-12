@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rolling next-trading-day prediction on the NAACL27 v4 samples.
+"""Rolling next-trading-day prediction on rolling samples.
 
 What the task is
 ----------------
@@ -37,9 +37,9 @@ are reported separately as coverage.
 
 Usage
 -----
-    ./.venv/bin/python predict_rolling_NAACL27.py --all
-    ./.venv/bin/python predict_rolling_NAACL27.py --users 1000000001 --limit 5
-    ./.venv/bin/python predict_rolling_NAACL27.py --all --resume
+    ./.venv/bin/python predict_rolling.py --all
+    ./.venv/bin/python predict_rolling.py --users 1000000001 --limit 5
+    ./.venv/bin/python predict_rolling.py --all --resume
 """
 from __future__ import annotations
 

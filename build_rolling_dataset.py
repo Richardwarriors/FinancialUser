@@ -16,7 +16,7 @@ from pathlib import Path
 
 from app.datasource import SQLiteDataSource
 from app.harness_graph import refresh
-from app.naacl_config import PROFILE_CUTOFF
+from app.rolling_config import PROFILE_CUTOFF
 from app.rolling_labels import build_targets
 from app.rolling_market import YahooMarketCache, build_market_context
 from app.rolling_profile import (forecast_baseline, llm_restatement,

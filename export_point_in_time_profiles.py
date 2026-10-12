@@ -7,7 +7,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from app.naacl_config import PROFILE_CUTOFF
+from app.rolling_config import PROFILE_CUTOFF
 from app.rolling_profile import export_profile
 
 HERE = Path(__file__).resolve().parent
@@ -34,7 +34,7 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     cutoff = f"{PROFILE_CUTOFF}T16:00:00-04:00"
-    manifest = {"schema_version": "naacl27_t0_manifest_v1", "cutoff_et": cutoff,
+    manifest = {"schema_version": "financial_t0_manifest_v1", "cutoff_et": cutoff,
                 "expected_users": args.expected_users, "profiles": []}
     for uid, (version, raw) in sorted(latest.items()):
         profile = json.loads(raw)

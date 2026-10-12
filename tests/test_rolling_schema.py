@@ -49,7 +49,7 @@ def main():
         "data_quality": {}, "provenance": {},
     }
     assert validate_profile(valid) is valid
-    bad = {**valid, "schema_version": "naacl27_base_profile_v1"}
+    bad = {**valid, "schema_version": "financial_base_profile_v1"}
     try:
         validate_profile(bad)
     except ValueError as exc:

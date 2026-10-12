@@ -291,7 +291,7 @@ CATALOG = {
 }
 
 # ---------------------------------------------------------------------------
-# NAACL27 fork: keep only the KYC blocks the retained profile dimensions
+# Rolling profile configuration: keep only the KYC blocks the retained profile dimensions
 # resolve against. `iter_features` below is the single accessor every consumer
 # goes through (kyc_tree, kyc_agents, catalog_summary), so filtering the catalog
 # here removes the blocks everywhere at once.
@@ -299,12 +299,12 @@ CATALOG = {
 # The dropped four blocks are not a loss of measurable information: they are the
 # ones whose features are dominated by `unavailable` (goals 5/9, jurisdiction
 # 5/7, financial_capacity 3/9, advisory_preferences 1/7 unavailable, and the
-# rest questionnaire-dependent). See app/naacl_config.py.
+# rest questionnaire-dependent). See app/rolling_config.py.
 # ---------------------------------------------------------------------------
 try:
-    from .naacl_config import KEEP_KYC_L1
+    from .rolling_config import KEEP_KYC_L1
 except ImportError:                                    # standalone import
-    from naacl_config import KEEP_KYC_L1
+    from rolling_config import KEEP_KYC_L1
 
 if KEEP_KYC_L1:
     _keep_kyc = set(KEEP_KYC_L1)

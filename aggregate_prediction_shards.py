@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from predict_rolling_NAACL27 import (
+from predict_rolling import (
     PROMPT_FORMAT, TRADE_ACTIVITY, TRADE_SIDES, by_confidence,
     contract_layers, scores, ticker_scores,
 )
@@ -67,7 +67,7 @@ def main() -> None:
         },
         "coverage": {"observed": len(observed), "unknown": len(rows) - len(observed),
                      "true_trade_days": len(trade)},
-        "corpus_schema_version": "naacl27_rolling_prediction_en_v7",
+        "corpus_schema_version": "financial_rolling_prediction_en_v7",
         "aggregation_source": "per-user pred_*.json files",
     }
     output = args.out / "summary.json"

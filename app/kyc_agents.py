@@ -78,7 +78,7 @@ GROUP_L1 = {
     "context": ["advisory_preferences", "financial_capacity", "jurisdiction_and_lifecycle"],
 }
 
-# NAACL27 fork: `CATALOG` is filtered to the blocks the retained dimensions
+# Rolling profile configuration: `CATALOG` is filtered to the blocks the retained dimensions
 # resolve against, so a group naming a dropped block would raise KeyError and
 # take the whole KYC layer down with it (observed: `KeyError:
 # 'goals_and_constraints'` logged as `[harness_kyc]`, tree then missing).
@@ -251,7 +251,7 @@ def fill_group(group, evidence, deterministic=None, timeout_note=""):
 
 GROUP_ORDER = ["goals_risk", "logic", "context"]
 
-# NAACL27 fork: run only the groups that still have a live KYC block. Without
+# Rolling profile configuration: run only the groups that still have a live KYC block. Without
 # this, `fill_group("context")` raises `KeyError: 'context'` and the whole KYC
 # call aborts — the layer silently degrades to "no KYC features" while the run
 # still reports success.

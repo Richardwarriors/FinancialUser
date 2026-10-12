@@ -197,15 +197,15 @@ L1_ORDER = [
 assert set(L1_ORDER) == set(L1_DEFS), f"L1_ORDER/L1_DEFS mismatch: {set(L1_ORDER) ^ set(L1_DEFS)}"
 
 # ---------------------------------------------------------------------------
-# NAACL27 fork: narrow the tree to the dimensions the financial data streams can support.
+# Rolling profile configuration: narrow the tree to the dimensions the financial data streams can support.
 # The full definitions above are kept intact so the fork stays revertible; only
-# the *effective* contract is filtered. See app/naacl_config.py for the rationale
+# the *effective* contract is filtered. See app/rolling_config.py for the rationale
 # and the list of dropped dimensions.
 # ---------------------------------------------------------------------------
 try:
-    from .naacl_config import KEEP_L1, KEEP_SUMMARY_GROUPS
+    from .rolling_config import KEEP_L1, KEEP_SUMMARY_GROUPS
 except ImportError:                                    # standalone import
-    from naacl_config import KEEP_L1, KEEP_SUMMARY_GROUPS
+    from rolling_config import KEEP_L1, KEEP_SUMMARY_GROUPS
 
 if KEEP_L1:
     _keep = set(KEEP_L1)

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.harness_graph import refresh
-from app.naacl_config import PROFILE_CUTOFF
+from app.rolling_config import PROFILE_CUTOFF
 
 
 def main():

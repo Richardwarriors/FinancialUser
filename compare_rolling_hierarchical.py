@@ -40,7 +40,7 @@ from math import comb
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-FINAL = HERE / "data" / "rolling_prediction" / "predictions_naacl27" / "final_v7"
+FINAL = HERE / "data" / "rolling_prediction" / "predictions" / "final_v7"
 
 ACTIVITY = ("no_trade", "trade")
 SIDES = ("buy_only", "sell_only", "buy_and_sell")
