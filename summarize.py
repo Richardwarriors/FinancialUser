@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from predict_rolling import (
+from predict import (
     PROMPT_FORMAT, TRADE_ACTIVITY, TRADE_SIDES, by_confidence,
     contract_layers, scores, ticker_scores,
 )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Independent temporal-integrity audit of the rolling dataset.
 
-This does NOT trust the build.  `build_rolling_dataset.py` writes a
+This does NOT trust the build.  `build_samples.py` writes a
 `leakage_audit` block and `build_prompt_view` has its own tripwires, but both are
 the same code that produced the data: if that code is wrong, its self-report is
 wrong in the same direction.  This file recomputes every boundary from the
@@ -27,8 +27,8 @@ so for a sample whose `prediction_date` is D:
 
 Usage
 -----
-    ./.venv/bin/python audit_rolling_leakage.py
-    ./.venv/bin/python audit_rolling_leakage.py --label-sample 60
+    ./.venv/bin/python audit.py
+    ./.venv/bin/python audit.py --label-sample 60
 """
 from __future__ import annotations
 
@@ -215,7 +215,7 @@ def recheck_labels(paths: list[Path], problems: list[str]) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--samples-dir",
-                    default=str(HERE / "data" / "rolling_prediction" / "v4" / "samples"))
+                    default=str(HERE / "data" / "rolling_prediction" / "samples"))
     ap.add_argument("--label-sample", type=int, default=40,
                     help="how many samples to re-derive from the source DB")
     ap.add_argument("--seed", type=int, default=0)

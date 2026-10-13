@@ -131,7 +131,7 @@ class _UserLock:
     same cutoff, and the store is immutable: the loser raises and that user
     fails after its LLM calls are already paid for.  A file lock turns the
     overlap into a skip.  Every worker is a fresh `python
-    build_rolling_dataset.py`, so putting the lock here also coordinates workers
+    build_samples.py`, so putting the lock here also coordinates workers
     launched by a supervisor that is running older code.
     """
 

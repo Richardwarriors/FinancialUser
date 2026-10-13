@@ -21,8 +21,8 @@ a reassuring summary over a broken corpus:
 
 Usage
 -----
-    ./.venv/bin/python check_rolling_dataset.py
-    ./.venv/bin/python check_rolling_dataset.py --out data/rolling_prediction/v4
+    ./.venv/bin/python check_samples.py
+    ./.venv/bin/python check_samples.py --out data/rolling_prediction/v4
 """
 from __future__ import annotations
 
@@ -220,9 +220,9 @@ def check_sample(sample: dict, problems: list[str]) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default=str(HERE / "data" / "rolling_prediction" / "v4"))
+    ap.add_argument("--out", default=str(HERE / "data" / "rolling_prediction"))
     ap.add_argument("--users-file", default=str(
-        HERE / "data" / "rolling_prediction" / "cohort" / "run_order_80.txt"))
+        HERE / "data" / "users.txt"))
     ap.add_argument("--end", default="2026-10-07")
     ap.add_argument("--prediction-sessions", type=int, default=40)
     args = ap.parse_args()

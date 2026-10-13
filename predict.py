@@ -14,7 +14,7 @@ answer different questions and disagree often:
 Both labels are observed from trade_executions executions and account_snapshots boundary books, so they
 are facts rather than judgements.
 
-Why this replaces `predict_rolling.py`
+Why this replaces `predict.py`
 --------------------------------------
 The old script reads a schema that no longer exists.  Every one of its evidence
 keys (`user_profile`, `base_profile_summary`, `long_term_profile`, `recent`,
@@ -37,9 +37,9 @@ are reported separately as coverage.
 
 Usage
 -----
-    ./.venv/bin/python predict_rolling.py --all
-    ./.venv/bin/python predict_rolling.py --users 1000000001 --limit 5
-    ./.venv/bin/python predict_rolling.py --all --resume
+    ./.venv/bin/python predict.py --all
+    ./.venv/bin/python predict.py --users 1000000001 --limit 5
+    ./.venv/bin/python predict.py --all --resume
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ from app.rolling_labels import POSITION_ACTIONS                      # noqa: E40
 from app.rolling_prompt import build_prompt_view                     # noqa: E402
 from app.rolling_schema import SAMPLE_SCHEMA_VERSION                 # noqa: E402
 
-SAMPLES = HERE / "data" / "rolling_prediction" / "v4" / "samples"
+SAMPLES = HERE / "data" / "rolling_prediction" / "samples"
 OUT_DEFAULT = HERE / "data" / "rolling_prediction" / "predictions"
 TRADE_ACTIVITY = ("trade", "no_trade")
 TRADE_SIDES = ("buy_only", "sell_only", "buy_and_sell", "not_applicable")
@@ -118,7 +118,7 @@ def prompt_messages(payload) -> list[dict]:
 
 
 def load_env(path: Path) -> None:
-    """Read credentials from `.luna.env`; they never reach the command line."""
+    """Read credentials from `.env`; they never reach the command line."""
     if not path.exists():
         return
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -492,7 +492,7 @@ def main() -> int:
     ap.add_argument("--out", help="default: <predictions>/<model>, so each model "
                                   "group keeps its own resumable directory")
     ap.add_argument("--model", help="model id to call; default LUNA_MODEL_STRONG "
-                                    "then LUNA_MODEL from .luna.env")
+                                    "then LUNA_MODEL from .env")
     ap.add_argument("--users", help="comma-separated user ids")
     ap.add_argument("--users-file", help="one user id per line, e.g. the priority cohort")
     ap.add_argument("--all", action="store_true")
@@ -514,14 +514,14 @@ def main() -> int:
                     help="build every prompt view and report sizes, call nothing")
     args = ap.parse_args()
 
-    load_env(HERE / ".luna.env")
+    load_env(HERE / ".env")
     key = os.environ.get("AIME_LITELLM_API_KEY")
     model = (args.model or os.environ.get("LUNA_MODEL_STRONG")
              or os.environ.get("LUNA_MODEL"))
     base_url = os.environ.get("LUNA_BASE_URL")
     if not args.dry_run and not (key and base_url):
         print("no credentials: expected AIME_LITELLM_API_KEY and LUNA_BASE_URL "
-              "in .luna.env")
+              "in .env")
         return 1
     api_url = (base_url or "").rstrip("/") + "/chat/completions"
 

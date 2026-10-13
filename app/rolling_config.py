@@ -6,7 +6,7 @@ What this fork changes relative to the production harness
    has ever produced, so a profile built today absorbs everything up to today.
    That is correct for production and fatal for a prediction benchmark: the
    profile would contain the behaviour it is supposed to predict. Here the
-   boundary is enforced in the *database* (see `load_observations_db.py`), so every
+   boundary is enforced in the *database* (see `load_data.py`), so every
    consumer — including ones that read a whole table — only ever sees rows on or
    before `PROFILE_CUTOFF`. No metric in `app/` is computed against wall-clock
    time, so this is sufficient rather than merely convenient.
@@ -42,7 +42,7 @@ To revert to the production behaviour, set `KEEP_L1 = None` and
 from __future__ import annotations
 
 # --------------------------------------------------------------------------
-# Time boundary. Must match the cutoff passed to `load_observations_db.py`.
+# Time boundary. Must match the cutoff passed to `load_data.py`.
 # 2026-08-01 is the 20th day of trade_executions's global window (2026-07-13 onwards), so
 # the profile is built from the first 20 days and prediction starts after them.
 # --------------------------------------------------------------------------

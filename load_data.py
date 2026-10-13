@@ -15,8 +15,8 @@ truncation at write time, so a downstream consumer that reads the whole table st
 only sees pre-T0 rows.
 
 Usage:
-    python3 load_observations_db.py --out data/observations_t0.db --cutoff 2026-08-01
-    python3 load_observations_db.py --out data/observations_t0.db --cutoff 2026-08-01 --users-file data/users_core_120.txt
+    python3 load_data.py --out data/observations_t0.db --cutoff 2026-08-01
+    python3 load_data.py --out data/observations_t0.db --cutoff 2026-08-01 --users-file data/users_core_120.txt
 """
 from __future__ import annotations
 

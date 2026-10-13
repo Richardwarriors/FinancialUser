@@ -25,8 +25,8 @@ reaches the marginal days. Coverage is reported per group instead.
 
 Usage
 -----
-    ./.venv/bin/python compare_rolling_hierarchical.py
-    ./.venv/bin/python compare_rolling_hierarchical.py --out report.md
+    ./.venv/bin/python compare.py
+    ./.venv/bin/python compare.py --out report.md
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ from math import comb
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-FINAL = HERE / "data" / "rolling_prediction" / "predictions" / "final_v7"
+FINAL = HERE / "data" / "rolling_prediction" / "predictions"
 
 ACTIVITY = ("no_trade", "trade")
 SIDES = ("buy_only", "sell_only", "buy_and_sell")

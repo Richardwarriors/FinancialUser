@@ -28,7 +28,7 @@ overlaps between arms.
 
 Usage
 -----
-    ./.venv/bin/python predict_rolling_ablation.py --arm market \
+    ./.venv/bin/python ablate.py --arm market \
         --users-file data/rolling_prediction/cohort/selected_80.txt \
         --model gpt-5.6-luna --resume
 """
@@ -44,7 +44,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import predict_rolling as base                               # noqa: E402
+import predict as base                               # noqa: E402
 from app.rolling_ablation import ARMS, ABLATIONS, apply_ablation     # noqa: E402
 from app.rolling_labels import POSITION_ACTIONS                      # noqa: E402
 from app.rolling_prompt import build_prompt_view                     # noqa: E402
@@ -171,13 +171,13 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    base.load_env(HERE / ".luna.env")
+    base.load_env(HERE / ".env")
     key = os.environ.get("AIME_LITELLM_API_KEY")
     model = (args.model or os.environ.get("LUNA_MODEL_STRONG")
              or os.environ.get("LUNA_MODEL"))
     base_url = os.environ.get("LUNA_BASE_URL")
     if not args.dry_run and not (key and base_url):
-        print("no credentials in .luna.env")
+        print("no credentials in .env")
         return 1
     api_url = (base_url or "").rstrip("/") + "/chat/completions"
 
